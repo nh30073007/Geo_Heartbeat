@@ -1,42 +1,41 @@
 # backend/app/sentiment/news_aggregator.py
 """
-News Aggregator - Combine GDELT + RSS into per-country sentiment snapshots.
+News Aggregator — RSS-FIRST architecture, GDELT optional.
 
-This is the KEY FILE that bridges raw news → your simulation state.
-
-Output schema per country:
-{
-    "country_id": "in",
-    "country_name": "India",
-    "fetched_at": ISO timestamp,
-    "sentiment_score": -0.42,           # -1 to +1
-    "article_count": 137,
-    "gdelt_count": 89,
-    "rss_count": 48,
-    "top_headlines": [{"title": ..., "url": ..., "tone": ..., "source": ...}, ...],
-    "tone_distribution": {"positive": 22, "neutral": 90, "negative": 25},
-    "source_breakdown": {"gdelt": 89, "rss": 48},
-    "economic_indicators": {...},
-    "_source": "live_news"
-}
+Key changes:
+- RSS is the primary source (always attempted, parallel)
+- WorldBank for economic baseline (parallel)
+- GDELT is OPTIONAL: runs in parallel but never blocks the response
+- If GDELT times out, RSS + lexicon sentiment deliver the snapshot
+- Overall per-request deadline (env: NEWS_TOTAL_DEADLINE=15s)
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+import os
+import re
+from datetime import datetime
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field
 
-from .gdelt_ingestor import GDELTIngestor
-from .rss_ingestor import RSSIngestor, COUNTRY_FEED_MAP
-from .worldbank_ingestor import WorldBankIngestor  # if you have it; else skip
+from .gdelt_ingestor import GDELTIngestor, gdelt_status, ENABLE_GDELT
+from .rss_ingestor import RSSIngestor
+
+try:
+    from .worldbank_ingestor import WorldBankIngestor
+    _HAS_WORLDBANK = True
+except Exception as _wb_err:
+    logging.getLogger(__name__).warning(f"WorldBank ingestor unavailable: {_wb_err}")
+    WorldBankIngestor = None  # type: ignore
+    _HAS_WORLDBANK = False
 
 logger = logging.getLogger(__name__)
 
+# Hard wall-clock cap for a single country fetch
+TOTAL_DEADLINE_SECONDS = float(os.getenv("NEWS_TOTAL_DEADLINE", "15.0"))
 
-# Country metadata (extend as needed)
-COUNTRY_MAP = {
+
+COUNTRY_MAP: Dict[str, Dict[str, str]] = {
     "in": {"name": "India", "iso2": "IN", "region": "South Asia"},
     "bd": {"name": "Bangladesh", "iso2": "BD", "region": "South Asia"},
     "pk": {"name": "Pakistan", "iso2": "PK", "region": "South Asia"},
@@ -66,18 +65,44 @@ COUNTRY_MAP = {
 }
 
 
+_POSITIVE_WORDS = {
+    "agreement", "peace", "growth", "surge", "rally", "recovery", "boost",
+    "cooperation", "partnership", "deal", "success", "win", "gain", "improve",
+    "record", "breakthrough", "alliance", "progress", "stability", "reform",
+    "investment", "expansion", "profit", "rise", "advance",
+}
+_NEGATIVE_WORDS = {
+    "conflict", "war", "attack", "crisis", "sanction", "protest", "collapse",
+    "decline", "tension", "threat", "strike", "recession", "inflation",
+    "corruption", "violence", "clash", "dispute", "ban", "tariff", "default",
+    "shortage", "loss", "fall", "drop", "risk", "warning", "fail",
+}
+_WORD_RE = re.compile(r"[a-zA-Z']+")
+
+
+def _lexicon_sentiment(text: str) -> float:
+    if not text:
+        return 0.0
+    words = [w.lower() for w in _WORD_RE.findall(text)]
+    if not words:
+        return 0.0
+    pos = sum(1 for w in words if w in _POSITIVE_WORDS)
+    neg = sum(1 for w in words if w in _NEGATIVE_WORDS)
+    total = pos + neg
+    if total == 0:
+        return 0.0
+    return max(-1.0, min(1.0, (pos - neg) / total))
+
+
 class NewsAggregator:
-    """
-    Single entry point for real-time news ingestion.
-    Combines GDELT (broad) + RSS (curated) + WorldBank (economic baseline).
-    """
+    """RSS-first aggregator with optional GDELT."""
 
     def __init__(self, cache_ttl_seconds: int = 300):
         self.gdelt = GDELTIngestor()
         self.rss = RSSIngestor()
-        self.worldbank = WorldBankIngestor()
+        self.worldbank = WorldBankIngestor() if _HAS_WORLDBANK else None
         self._cache: Dict[str, Dict[str, Any]] = {}
-        self._cache_ttl = cache_ttl_seconds
+        self._cache_ttl = max(30, int(cache_ttl_seconds))
         self._lock = asyncio.Lock()
 
     async def fetch_country(
@@ -86,16 +111,12 @@ class NewsAggregator:
         hours_back: int = 24,
         force_refresh: bool = False,
     ) -> Optional[Dict[str, Any]]:
-        """
-        Fetch + aggregate real-time data for one country.
-        Uses cache if fresh; otherwise fetches from all sources.
-        """
         country_id = (country_id or "").strip().lower()
         if country_id not in COUNTRY_MAP:
-            logger.warning(f"Unknown country: {country_id}")
+            logger.warning(f"Unknown country requested: {country_id!r}")
             return None
 
-        # Cache check
+        # Cache hit
         if not force_refresh:
             cached = self._cache.get(country_id)
             if cached:
@@ -107,35 +128,54 @@ class NewsAggregator:
         meta = COUNTRY_MAP[country_id]
         country_name = meta["name"]
 
-        # Parallel fetch
-        gdelt_task = self.gdelt.fetch_country_news(country_name, hours_back=hours_back)
-        rss_task = self.rss.fetch_country_feeds(country_name)
-        econ_task = self.worldbank.fetch_all_for_country(meta["iso2"])
-
-        gdelt_articles, rss_articles, econ = await asyncio.gather(
-            gdelt_task, rss_task, econ_task, return_exceptions=True
+        # ---- Fire all sources in parallel, each isolated ----
+        gdelt_task = self._safe_call(
+            "GDELT",
+            self.gdelt.fetch_country_news(country_name, hours_back=hours_back),
         )
+        rss_task = self._safe_call(
+            "RSS",
+            self.rss.fetch_country_feeds(country_name),
+        )
+        if self.worldbank is not None:
+            econ_task = self._safe_call(
+                "WorldBank",
+                self.worldbank.fetch_all_for_country(meta["iso2"]),
+            )
+        else:
+            econ_task = asyncio.sleep(0, result={})
 
-        if isinstance(gdelt_articles, Exception):
-            logger.warning(f"GDELT error: {gdelt_articles}")
-            gdelt_articles = []
-        if isinstance(rss_articles, Exception):
-            logger.warning(f"RSS error: {rss_articles}")
-            rss_articles = []
-        if isinstance(econ, Exception):
-            logger.warning(f"WorldBank error: {econ}")
-            econ = {}
+        # ---- Wrap in overall deadline so no source can hang the request ----
+        try:
+            gdelt_articles, rss_articles, econ = await asyncio.wait_for(
+                asyncio.gather(gdelt_task, rss_task, econ_task),
+                timeout=TOTAL_DEADLINE_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"⏱️ Overall news deadline ({TOTAL_DEADLINE_SECONDS}s) hit for "
+                f"{country_id} — returning partial data"
+            )
+            gdelt_articles, rss_articles, econ = [], [], {}
 
-        # Combine
         all_articles = list(gdelt_articles) + list(rss_articles)
-        result = self._build_snapshot(country_id, country_name, all_articles, econ)
-        result["_cached_at"] = datetime.now()
+        snapshot = self._build_snapshot(
+            country_id, country_name, all_articles, econ or {}
+        )
+        snapshot["_cached_at"] = datetime.now()
 
-        # Store in cache (with lock to avoid race)
         async with self._lock:
-            self._cache[country_id] = result
+            self._cache[country_id] = snapshot
 
-        return result
+        return snapshot
+
+    @staticmethod
+    async def _safe_call(name: str, coro) -> Any:
+        try:
+            return await coro
+        except Exception as e:
+            logger.warning(f"{name} source failed: {type(e).__name__}: {e}")
+            return []
 
     def _build_snapshot(
         self,
@@ -144,49 +184,79 @@ class NewsAggregator:
         articles: List[Dict[str, Any]],
         econ: Dict[str, float],
     ) -> Dict[str, Any]:
-        """Aggregate all articles into a single sentiment snapshot."""
-
         gdelt_articles = [a for a in articles if a.get("_source_type") == "gdelt"]
         rss_articles = [a for a in articles if a.get("_source_type") == "rss"]
 
-        # Sentiment score — use GDELT tones (RSS has no tone)
+        # ---- Sentiment score ----
         tones = [
             float(a["tone"])
             for a in gdelt_articles
             if isinstance(a.get("tone"), (int, float))
         ]
         if tones:
-            sentiment_score = max(-1.0, min(1.0, sum(tones) / len(tones)))
+            gdelt_score = sum(tones) / len(tones)
+            gdelt_score = max(-1.0, min(1.0, gdelt_score))
         else:
-            sentiment_score = 0.0
+            gdelt_score = 0.0
 
-        # Tone distribution
-        pos = sum(1 for t in tones if t > 0.15)
-        neg = sum(1 for t in tones if t < -0.15)
-        neu = len(tones) - pos - neg
+        # RSS lexicon fallback
+        rss_scores: List[float] = []
+        if not tones and rss_articles:
+            for a in rss_articles:
+                title = a.get("title", "") or ""
+                score = _lexicon_sentiment(title)
+                a["_lexicon_tone"] = score
+                rss_scores.append(score)
+            if rss_scores:
+                gdelt_score = sum(rss_scores) / len(rss_scores)
+                gdelt_score = max(-1.0, min(1.0, gdelt_score))
 
-        # Top headlines — sorted by abs(tone) descending
-        sorted_articles = sorted(
-            gdelt_articles,
-            key=lambda a: abs(float(a.get("tone", 0))),
-            reverse=True,
-        )
-        top_headlines = [
-            {
-                "title": a["title"],
-                "url": a["url"],
-                "source": a.get("source", ""),
-                "tone": a.get("tone", 0.0),
-                "seendate": a.get("seendate", ""),
-            }
-            for a in sorted_articles[:10]
-        ]
+        sentiment_score = round(gdelt_score, 3)
 
-        # Top RSS headlines
+        # ---- Tone distribution ----
+        effective_tones = tones if tones else rss_scores
+        pos = sum(1 for t in effective_tones if t > 0.15)
+        neg = sum(1 for t in effective_tones if t < -0.15)
+        neu = max(0, len(effective_tones) - pos - neg)
+
+        # ---- Top headlines (GDELT preferred, RSS fallback) ----
+        if gdelt_articles:
+            sorted_articles = sorted(
+                gdelt_articles,
+                key=lambda a: abs(float(a.get("tone", 0))),
+                reverse=True,
+            )
+            top_headlines = [
+                {
+                    "title": a.get("title", ""),
+                    "url": a.get("url", ""),
+                    "source": a.get("source", ""),
+                    "tone": a.get("tone", 0.0),
+                    "seendate": a.get("seendate", ""),
+                }
+                for a in sorted_articles[:10]
+            ]
+        else:
+            sorted_rss = sorted(
+                rss_articles,
+                key=lambda a: abs(float(a.get("_lexicon_tone", 0.0))),
+                reverse=True,
+            )
+            top_headlines = [
+                {
+                    "title": a.get("title", ""),
+                    "url": a.get("url", ""),
+                    "source": a.get("source", ""),
+                    "tone": a.get("_lexicon_tone", 0.0),
+                    "seendate": a.get("published", ""),
+                }
+                for a in sorted_rss[:10]
+            ]
+
         top_rss = [
             {
-                "title": a["title"],
-                "url": a["url"],
+                "title": a.get("title", ""),
+                "url": a.get("url", ""),
                 "source": a.get("source", ""),
                 "feed": a.get("feed", ""),
                 "published": a.get("published", ""),
@@ -198,7 +268,7 @@ class NewsAggregator:
             "country_id": country_id,
             "country_name": country_name,
             "fetched_at": datetime.now().isoformat(),
-            "sentiment_score": round(sentiment_score, 3),
+            "sentiment_score": sentiment_score,
             "article_count": len(articles),
             "gdelt_count": len(gdelt_articles),
             "rss_count": len(rss_articles),
@@ -221,27 +291,55 @@ class NewsAggregator:
         self,
         country_ids: List[str],
         hours_back: int = 24,
-    ) -> Dict[str, Dict[str, Any]]:
-        """Fetch multiple countries in parallel."""
-        tasks = {cid: self.fetch_country(cid, hours_back) for cid in country_ids}
-        results = await asyncio.gather(*tasks.values(), return_exceptions=True)
-
-        output = {}
-        for cid, res in zip(tasks.keys(), results):
-            if isinstance(res, Exception):
-                logger.error(f"Fetch {cid} failed: {res}")
-                output[cid] = None
-            else:
-                output[cid] = res
-        return output
+    ) -> Dict[str, Optional[Dict[str, Any]]]:
+        """Fetch multiple countries, serialized to protect GDELT rate limit."""
+        results: Dict[str, Optional[Dict[str, Any]]] = {}
+        for cid in country_ids:
+            try:
+                results[cid] = await self.fetch_country(cid, hours_back)
+            except Exception as e:
+                logger.error(f"Fetch {cid} failed: {type(e).__name__}: {e}")
+                results[cid] = None
+        return results
 
     def get_cached(self, country_id: str) -> Optional[Dict[str, Any]]:
-        return self._cache.get(country_id.lower())
+        return self._cache.get((country_id or "").lower())
+
+    def cache_info(self) -> Dict[str, Any]:
+        now = datetime.now()
+        return {
+            "size": len(self._cache),
+            "ttl_seconds": self._cache_ttl,
+            "entries": {
+                cid: {
+                    "age_seconds": round((now - v["_cached_at"]).total_seconds(), 1),
+                    "article_count": v.get("article_count", 0),
+                    "gdelt_count": v.get("gdelt_count", 0),
+                    "rss_count": v.get("rss_count", 0),
+                }
+                for cid, v in self._cache.items()
+            },
+        }
+
+    def health(self) -> Dict[str, Any]:
+        """Combined health for /health endpoints."""
+        return {
+            "cache": self.cache_info(),
+            "gdelt": gdelt_status(),
+            "deadline_seconds": TOTAL_DEADLINE_SECONDS,
+        }
 
     async def close(self):
-        await self.gdelt.close()
-        await self.worldbank.close()
+        try:
+            await self.gdelt.close()
+        except Exception as e:
+            logger.debug(f"GDELT close error: {e}")
+        if self.worldbank is not None:
+            try:
+                await self.worldbank.close()
+            except Exception as e:
+                logger.debug(f"WorldBank close error: {e}")
 
 
-# Global singleton — import this from anywhere
+# Global singleton
 news_aggregator = NewsAggregator(cache_ttl_seconds=300)
