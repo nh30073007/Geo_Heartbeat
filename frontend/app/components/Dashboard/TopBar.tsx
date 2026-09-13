@@ -1,0 +1,8 @@
+"use client";
+import { useState } from 'react';
+import { Bell, ChevronDown, Command, Search, Wifi, WifiOff } from 'lucide-react';
+import { MobileMenuButton } from './Sidebar';
+export function TopBar({ isConnected, scenario, turn, year, onMenu, onScenario, onSearch, onNotifications, onProfile }: { isConnected:boolean; scenario:string; turn:number; year:number; onMenu:()=>void; onScenario:()=>void; onSearch:(value:string)=>void; onNotifications:()=>void; onProfile:()=>void }) {
+ const [q,setQ]=useState('');
+ return <header className="topbar"><MobileMenuButton onClick={onMenu}/><div className="topbar-heading"><p className="top-title">DASHBOARD</p><p className="top-subtitle">Global Overview & Real-time Simulation</p></div><div className="top-actions"><button className="scenario-select" onClick={onScenario}><span>SCENARIO</span><b>{scenario}</b><ChevronDown size={15}/></button><label className="search"><Search size={16}/><input value={q} onChange={e=>{setQ(e.target.value);onSearch(e.target.value)}} placeholder="Search country, agent, event..."/><kbd><Command size={11}/>K</kbd></label><button className={`connection ${isConnected?'online':''}`} onClick={onNotifications} title="Connection status"><span>{isConnected?<Wifi size={16}/>:<WifiOff size={16}/>}</span><small>{isConnected?'LIVE':'OFFLINE'}</small></button><button className="icon-button notification" onClick={onNotifications}><Bell size={18}/><i>8</i></button><button className="commander" onClick={onProfile}><div className="avatar">CA</div><div><b>Commander</b><small>Global Analyst</small></div><ChevronDown size={15}/></button></div><div className="top-meta">YEAR <b>{year}</b><span/> TURN <b>{turn}</b></div></header>;
+}

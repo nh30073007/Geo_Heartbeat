@@ -1,0 +1,3 @@
+import { Shield } from 'lucide-react';
+import { Panel } from './Panel';
+export function GlobalStability({score}:{score:number}){const r=42, c=2*Math.PI*r, dash=c*(score/100);return <Panel eyebrow="SYSTEMIC RISK" title="Global Stability"><div className="gauge"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r={r} className="gauge-bg"/><circle cx="60" cy="60" r={r} className="gauge-value" strokeDasharray={`${dash} ${c-dash}`}/></svg><div><b>{Math.round(score)}</b><span>/100</span><small>{score>70?'Stable':score>50?'Moderate':'Unstable'}</small></div></div><div className="risk-row"><Shield size={15}/><span>Systemic risk</span><b>{score>70?'LOW':'ELEVATED'}</b></div></Panel>}

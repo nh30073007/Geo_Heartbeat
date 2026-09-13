@@ -1,0 +1,5 @@
+"use client";
+import { useMemo } from 'react';
+import type { SimulationHistoryPoint } from '../../types';
+import { Panel } from './Panel';
+export function AdvancedChart({history}:{history:SimulationHistoryPoint[]}){const points=useMemo(()=>history.slice(-50),[history]);const line=(key:keyof SimulationHistoryPoint['state'])=>points.map((p,i)=>`${(i/Math.max(1,points.length-1))*100},${100-(Number(p.state[key])*100/100)}`).join(' ');return <Panel eyebrow="MODEL TELEMETRY" title="Key Metrics" action={<span className="chart-note">Last {points.length} rounds</span>}><div className="chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 20H100M0 50H100M0 80H100" className="chart-grid"/><polyline points={line('economic_stability')} className="chart-economic"/><polyline points={line('technology_independence')} className="chart-tech"/><polyline points={line('strategic_tension')} className="chart-tension"/></svg><div className="chart-labels"><span>Economic</span><span>Technology</span><span>Tension</span></div></div></Panel>}

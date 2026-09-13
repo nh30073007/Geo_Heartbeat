@@ -1,0 +1,4 @@
+"use client";
+import { FastForward, Pause, Play, RotateCcw, Square } from 'lucide-react';
+import { Panel } from './Panel';
+export function ScenarioControls({running,onToggle,onEnd,onReset}:{running:boolean;onToggle:()=>void;onEnd:()=>void;onReset:()=>void}){return <Panel eyebrow="COMMAND CENTER" title="Scenario Controls"><div className="control-grid"><button className="control primary" onClick={onToggle}>{running?<Pause size={16}/>:<Play size={16}/>} {running?'Pause Simulation':'Resume Simulation'}</button><button className="control danger" onClick={onEnd}><FastForward size={16}/> End Turn</button><button className="control neutral" onClick={onReset}><RotateCcw size={16}/> Reset</button><div className="control-status"><span className={running?'running':''}/><div><b>{running?'ENGINE RUNNING':'ENGINE PAUSED'}</b><small>WebSocket event loop</small></div></div></div></Panel>}

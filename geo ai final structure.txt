@@ -1,0 +1,256 @@
+strategic-ai-nexus-working-build/
+│
+├── README.md
+├── README_WINDOWS.md
+├── SETUP_WINDOWS.bat
+├── START_WINDOWS.bat
+├── .gitignore
+├── geo ai final structure.txt          ← ⚠️ এই ফাইলটি (আপডেট করুন)
+│
+├── backend/
+│   ├── run.py
+│   ├── requirements.txt                ← ✅ আপডেট: httpx, feedparser যোগ
+│   ├── Dockerfile
+│   ├── .env.example
+│   ├── test_backend.py
+│   ├── cd
+│   ├── python
+│   │
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                     ← ✅ আপডেট: news_router যোগ
+│   │   │
+│   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   └── runtime.py
+│   │   │
+│   │   ├── agents/
+│   │   │   ├── __init__.py
+│   │   │   ├── base_agent.py
+│   │   │   ├── hegemon_agent.py
+│   │   │   ├── sovereign_agent.py
+│   │   │   └── dqn.py
+│   │   │
+│   │   ├── environment/
+│   │   │   ├── __init__.py
+│   │   │   ├── environment.py
+│   │   │   ├── state.py
+│   │   │   └── transition.py
+│   │   │
+│   │   ├── game_theory/
+│   │   │   ├── __init__.py
+│   │   │   ├── payoff.py
+│   │   │   ├── payoff_matrix.py
+│   │   │   ├── mixed_strategy.py
+│   │   │   ├── best_response.py
+│   │   │   ├── equilibrium.py
+│   │   │   └── reward_shaper.py
+│   │   │
+│   │   ├── simulation/
+│   │   │   ├── __init__.py
+│   │   │   ├── engine.py
+│   │   │   ├── runner.py
+│   │   │   ├── scenarios.py
+│   │   │   └── replay.py
+│   │   │
+│   │   ├── analytics/
+│   │   │   ├── __init__.py
+│   │   │   ├── forecast.py
+│   │   │   ├── prediction_agent.py
+│   │   │   ├── country_analytics.py
+│   │   │   ├── data_collector.py
+│   │   │   └── sentiment_agent.py
+│   │   │
+│   │   ├── sentiment/                  ← 🔥 মূল পরিবর্তন এখানে
+│   │   │   ├── __init__.py             ← ✅ আপডেট: live ingestors export
+│   │   │   ├── ingestion.py
+│   │   │   ├── preprocessing.py
+│   │   │   ├── classifier.py
+│   │   │   ├── analyzer.py
+│   │   │   ├── aggregator.py
+│   │   │   ├── models.py
+│   │   │   ├── gdelt_ingestor.py       ← ✅ NEW: GDELT 2.0 ইনজেশন
+│   │   │   ├── rss_ingestor.py         ← ✅ NEW: BBC, Reuters, Al Jazeera RSS
+│   │   │   ├── worldbank_ingestor.py   ← ✅ NEW: World Bank অর্থনৈতিক ডেটা
+│   │   │   └── news_aggregator.py      ← ✅ NEW: সব সোর্স একসাথে
+│   │   │
+│   │   ├── database/
+│   │   │   ├── __init__.py
+│   │   │   ├── session.py
+│   │   │   ├── models.py
+│   │   │   ├── country_models.py       ← ✅ আপডেট: arbitrary_types_allowed
+│   │   │   └── crud.py
+│   │   │
+│   │   ├── realtime/
+│   │   │   ├── __init__.py
+│   │   │   ├── events.py
+│   │   │   └── websocket.py
+│   │   │
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── websocket.py
+│   │   │   │
+│   │   │   └── routes/
+│   │   │       ├── __init__.py         ← ✅ আপডেট: news_router যোগ
+│   │   │       ├── dashboard.py
+│   │   │       ├── simulation.py
+│   │   │       ├── state.py
+│   │   │       ├── analytics.py
+│   │   │       ├── country.py          ← ✅ আপডেট: live news overlay
+│   │   │       ├── news.py             ← ✅ NEW: /api/news/* endpoints
+│   │   │       └── websocket.py
+│   │   │
+│   │   └── utils/
+│   │       ├── __init__.py
+│   │       ├── config.py
+│   │       └── logger.py
+│   │
+│   ├── data/
+│   │   ├── simulations/
+│   │   ├── logs/
+│   │   ├── checkpoints/
+│   │   ├── exports/
+│   │   ├── results/
+│   │   ├── backups/
+│   │   ├── cache/                      ← (news_aggregator এখানে ক্যাশ করবে)
+│   │   └── reports/
+│   │
+│   └── tests/
+│       ├── __init__.py
+│       ├── test_simulation.py
+│       ├── test_environment.py
+│       ├── test_agents.py
+│       ├── test_game_theory.py
+│       ├── test_sentiment_complete.py
+│       ├── test_gdelt.py               ← ✅ NEW (optional)
+│       ├── test_rss.py                 ← ✅ NEW (optional)
+│       └── test_news_aggregator.py     ← ✅ NEW (optional)
+│
+├── frontend/
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── tsconfig.json
+│   ├── next-env.d.ts
+│   ├── next.config.js
+│   ├── postcss.config.mjs
+│   ├── tailwind.config.js
+│   ├── .eslintrc.json
+│   ├── .env.example
+│   ├── .env.local
+│   ├── README.md
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
+│   │
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── globals.css                 ← ✅ আপডেট: WorldMap + LIVE badge CSS
+│   │   ├── favicon.ico
+│   │   │
+│   │   ├── types/
+│   │   │   ├── index.ts
+│   │   │   └── country.ts              ← ✅ আপডেট: _live_news টাইপ
+│   │   │
+│   │   ├── hooks/
+│   │   │   ├── useCountry.ts           ← ✅ আপডেট: পোলিং + refresh
+│   │   │   ├── useSimulation.ts
+│   │   │   ├── useWebSocket.ts
+│   │   │   └── useNews.ts              ← ✅ NEW: live news hook (optional)
+│   │   │
+│   │   └── components/
+│   │       └── Dashboard/
+│   │           ├── Dashboard.tsx       ← ✅ আপডেট: CountryCard integration
+│   │           ├── TopBar.tsx
+│   │           ├── Sidebar.tsx
+│   │           ├── WorldMap.tsx        ← ✅ আপডেট: click → CountryCard
+│   │           ├── CountryCard.tsx     ← ✅ আপডেট: LIVE badge + news section
+│   │           ├── NewsFeed.tsx        ← ✅ NEW (optional)
+│   │           ├── KpiStrip.tsx
+│   │           ├── EconomicHealth.tsx
+│   │           ├── GlobalStability.tsx
+│   │           ├── TechnologyIndex.tsx
+│   │           ├── ResourcePressure.tsx
+│   │           ├── PowerBalance.tsx
+│   │           ├── MilitaryOverview.tsx
+│   │           ├── DiplomaticRelations.tsx
+│   │           ├── ActiveConflicts.tsx
+│   │           ├── AgentIntelligence.tsx
+│   │           ├── IntelligenceFeed.tsx
+│   │           ├── ForecastPanel.tsx
+│   │           ├── AdvancedChart.tsx
+│   │           ├── Timeline.tsx
+│   │           ├── UpcomingEvents.tsx
+│   │           ├── ScenarioControls.tsx
+│   │           ├── QuickActions.tsx
+│   │           └── Panel.tsx
+│   │
+│   └── public/
+│       ├── next.svg
+│       ├── window.svg
+│       ├── file.svg
+│       ├── globe.svg
+│       └── vercel.svg
+│
+├── data/
+│   ├── results/
+│   ├── cache/
+│   └── reports/
+│
+└── [project configuration/documentation]
+
+
+
+📊 ডেটা ফ্লো (আপডেটেড)
+
+
+┌────────────────────────────────────────────────────────────┐
+│  EXTERNAL REAL SOURCES (নতুন!)                            │
+├────────────────────────────────────────────────────────────┤
+│  • GDELT 2.0       → global geopolitical news (free)       │
+│  • RSS Feeds       → BBC, Reuters, Al Jazeera              │
+│  • World Bank API  → real GDP, inflation, unemployment     │
+└────────────────────────────────────────────────────────────┘
+                        ↓
+┌────────────────────────────────────────────────────────────┐
+│  Sentiment Pipeline                                        │
+│  gdelt_ingestor + rss_ingestor + worldbank_ingestor        │
+│              ↓                                              │
+│  news_aggregator (sentiment score, headlines, econ)        │
+└────────────────────────────────────────────────────────────┘
+                        ↓
+┌────────────────────────────────────────────────────────────┐
+│  SIMULATION ENGINE                                          │
+│  Hegemon Agent ←→ Sovereign Agent                          │
+│  Game Theory → Action Selection → Environment              │
+│  → Reward Shaping → RL Learning (Q/DQN)                    │
+└────────────────────────────────────────────────────────────┘
+                        ↓
+        ┌───────────────┴───────────────┐
+        ↓                               ↓
+┌────────────────┐              ┌────────────────┐
+│ country.py API │              │ WebSocket      │
+│ + live news    │              │ real-time push │
+│ overlay        │              │                │
+└────────────────┘              └────────────────┘
+        ↓                               ↓
+┌────────────────────────────────────────────────────────────┐
+│  Next.js Dashboard                                          │
+│  WorldMap → CountryCard (LIVE badge + news headlines)      │
+└────────────────────────────────────────────────────────────┘
+
+
+💾 geo ai final structure.txt
+
+
+│   │   ├── sentiment/
+│   │   │   ├── __init__.py             ← UPDATED
+│   │   │   ├── ingestion.py
+│   │   │   ├── preprocessing.py
+│   │   │   ├── classifier.py
+│   │   │   ├── analyzer.py
+│   │   │   ├── aggregator.py
+│   │   │   ├── models.py
+│   │   │   ├── gdelt_ingestor.py       ← NEW
+│   │   │   ├── rss_ingestor.py         ← NEW
+│   │   │   ├── worldbank_ingestor.py   ← NEW
+│   │   │   └── news_aggregator.py      ← NEW

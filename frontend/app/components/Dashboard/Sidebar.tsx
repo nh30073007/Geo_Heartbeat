@@ -1,0 +1,12 @@
+"use client";
+import { useState } from 'react';
+import { Activity, BarChart3, ChevronLeft, ChevronRight, CircleDollarSign, Cpu, FileText, Globe2, Handshake, LayoutDashboard, Menu, Package, Settings, ShieldAlert, Bot, X } from 'lucide-react';
+const items = [
+  ['Dashboard', LayoutDashboard, null], ['World', Globe2, 'section-world'], ['Agents', Bot, 'section-agents'], ['Conflicts', ShieldAlert, 'section-conflicts'], ['Economy', CircleDollarSign, 'section-economy'], ['Technology', Cpu, 'section-technology'], ['Resources', Package, 'section-resources'], ['Treaties', Handshake, 'section-treaties'], ['Analytics', BarChart3, 'section-analytics'], ['Reports', FileText, null], ['Settings', Settings, null],
+] as const;
+export function Sidebar({ open, onClose, onNavigate }: { open: boolean; onClose: () => void; onNavigate: (label: string, sectionId: string | null) => void }) {
+  const [collapsed,setCollapsed]=useState(false); const [active,setActive]=useState('Dashboard');
+  const handleNav=(label:string,sectionId:string|null)=>{setActive(label);onClose();onNavigate(label,sectionId)};
+  return <><div className={`mobile-overlay ${open?'show':''}`} onClick={onClose}/><aside className={`sidebar ${collapsed?'collapsed':''} ${open?'mobile-open':''}`}><div className="brand"><div className="brand-mark"><Globe2 size={25}/><span/></div>{!collapsed&&<div><strong>GeoPolis</strong><small>SIMULATION</small></div>}<button className="icon-button mobile-close" onClick={onClose}><X size={18}/></button></div><div className="sidebar-live"><span className="live-dot"/>{!collapsed&&<><b>LIVE</b><span>Simulation engine</span></>}</div><nav>{items.map(([label,Icon,sectionId])=><button key={label} className={`nav-item ${active===label?'active':''}`} title={label} onClick={()=>handleNav(label,sectionId)}><Icon size={18}/>{!collapsed&&<span>{label}</span>}{!collapsed&&sectionId&&<ChevronRight size={14} className="nav-arrow"/>}</button>)}</nav><div className="sidebar-footer">{!collapsed&&<div className="system-card"><Activity size={15}/><div><span>ENGINE STATUS</span><b>OPERATIONAL</b></div></div>}<button className="collapse-button" onClick={()=>setCollapsed(v=>!v)}>{collapsed?<ChevronRight size={17}/>:<ChevronLeft size={17}/>} {!collapsed&&'Collapse'}</button></div></aside></>;
+}
+export function MobileMenuButton({onClick}:{onClick:()=>void}){return <button className="icon-button mobile-menu" onClick={onClick}><Menu size={20}/></button>}
