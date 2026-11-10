@@ -1,5 +1,6 @@
 """
 Simulation Runner - Manages simulation lifecycle with persistence
+FIXED: Graceful shutdown on asyncio.CancelledError (no more ASGI crash)
 """
 from typing import Dict, Any, Optional, List
 import asyncio
@@ -21,8 +22,9 @@ class SimulationRunner:
     - Result aggregation
     - Report generation
     - Persistence support
+    - FIXED: graceful CancelledError handling on shutdown
     """
-    
+
     def __init__(self):
         self.simulations: Dict[str, SimulationEngine] = {}
         self.results: Dict[str, Any] = {}
@@ -33,14 +35,14 @@ class SimulationRunner:
         # Per-simulation lifecycle locks close the small race where two
         # HTTP requests schedule start tasks before either task has begun.
         self._run_locks: Dict[str, asyncio.Lock] = {}
-        
+
         # Setup directories
         Path("data/reports").mkdir(parents=True, exist_ok=True)
         Path("data/results").mkdir(parents=True, exist_ok=True)
         Path("data/cache").mkdir(parents=True, exist_ok=True)
-        
+
         logger.info("🏃 Simulation Runner initialized")
-    
+
     def create_simulation(
         self,
         sim_id: str,
@@ -54,20 +56,26 @@ class SimulationRunner:
             # Check if it's cached
             logger.warning(f"⚠️ Simulation {sim_id} already exists in memory")
             return self.simulations[sim_id]
-        
+
         config = config or SimulationConfig()
         environment = environment or StrategicEnvironment(stochastic=config.stochastic)
-        
+
         engine = SimulationEngine(config, environment)
         engine.sim_id = sim_id
         engine.created_at = datetime.now()
         self.simulations[sim_id] = engine
-        
+
         logger.info(f"📋 Created simulation: {sim_id}")
         return engine
-    
+
     async def run_simulation(self, sim_id: str) -> Dict[str, Any]:
-        """Run one simulation with an idempotent, race-safe lifecycle."""
+        """Run one simulation with an idempotent, race-safe lifecycle.
+
+        FIXED: asyncio.CancelledError is now handled gracefully.
+        When the server shuts down, the pending engine.run() task gets
+        cancelled — we log it and release the lock cleanly, without
+        raising ASGI application errors.
+        """
         lock = self._run_locks.setdefault(sim_id, asyncio.Lock())
         async with lock:
             if sim_id not in self.simulations:
@@ -109,6 +117,25 @@ class SimulationRunner:
                     'status': 'success',
                     'result': result.__dict__ if hasattr(result, '__dict__') else result
                 }
+            except asyncio.CancelledError:
+                # FIXED: Server shutdown — do NOT re-raise; just log and exit.
+                logger.info(
+                    "🛑 RUN CANCELLED (shutdown) sim=%s round=%s",
+                    sim_id,
+                    self.simulations.get(sim_id).current_round
+                    if sim_id in self.simulations else None,
+                )
+                # Mark engine as stopped so it's not in a half-running state
+                if sim_id in self.simulations:
+                    try:
+                        self.simulations[sim_id].status = SimulationStatus.STOPPED
+                    except Exception:
+                        pass
+                return {
+                    'status': 'cancelled',
+                    'sim_id': sim_id,
+                    'reason': 'server_shutdown',
+                }
             except Exception as e:
                 logger.error(f"Simulation {sim_id} failed: {e}")
                 return {'status': 'failed', 'error': str(e)}
@@ -128,19 +155,19 @@ class SimulationRunner:
         if sim_id in self.simulations:
             self.simulations[sim_id].stop()
             logger.info(f"⏹️ Stopping simulation: {sim_id}")
-    
+
     def pause_simulation(self, sim_id: str):
         """Pause a running simulation"""
         if sim_id in self.simulations:
             self.simulations[sim_id].pause()
             logger.info(f"⏸️ Pausing simulation: {sim_id}")
-    
+
     def resume_simulation(self, sim_id: str):
         """Resume a paused simulation"""
         if sim_id in self.simulations:
             self.simulations[sim_id].resume()
             logger.info(f"▶️ Resuming simulation: {sim_id}")
-    
+
     async def step_simulation(self, sim_id: str) -> Dict[str, Any]:
         """Advance exactly one round for interactive dashboard controls."""
         if sim_id not in self.simulations:
@@ -152,13 +179,13 @@ class SimulationRunner:
                 logger.info(f"♻️ Recovered simulation for step: {sim_id}")
             else:
                 raise ValueError(f"Simulation {sim_id} not found")
-        
+
         engine = self.simulations[sim_id]
         if engine.status == SimulationStatus.RUNNING:
             raise ValueError("Pause the simulation before manual stepping")
         if engine.status == SimulationStatus.COMPLETED:
             return engine.get_state()
-        
+
         engine.status = SimulationStatus.RUNNING
         await engine._run_round()
         # _run_round() owns the round increment.  Do not increment here or a
@@ -169,11 +196,11 @@ class SimulationRunner:
             if engine.current_round >= engine.config.max_rounds
             else SimulationStatus.PAUSED
         )
-        
+
         # Cache after step
         from ..core.runtime import runtime
         runtime._save_simulation_to_cache(sim_id)
-        
+
         return engine.get_state()
 
     def reset_simulation(self, sim_id: str):
@@ -187,7 +214,7 @@ class SimulationRunner:
                 logger.info(f"♻️ Recovered simulation for reset: {sim_id}")
             else:
                 raise ValueError(f"Simulation {sim_id} not found")
-        
+
         engine = self.simulations[sim_id]
         engine.stop()
         engine.environment.reset()
@@ -215,11 +242,11 @@ class SimulationRunner:
             agent.exploration_rate = float(engine.config.exploration_rate)
             agent.epsilon_min = float(engine.config.epsilon_min)
             agent.epsilon_decay = float(engine.config.epsilon_decay)
-        
+
         # Cache after reset
         from ..core.runtime import runtime
         runtime._save_simulation_to_cache(sim_id)
-        
+
         return engine.get_state()
 
     async def run_batch(
@@ -232,32 +259,32 @@ class SimulationRunner:
         """
         results = {}
         semaphore = asyncio.Semaphore(parallel)
-        
+
         async def run_with_semaphore(sim_id: str, config: Dict[str, Any]):
             async with semaphore:
                 config_obj = SimulationConfig(**config)
                 engine = self.create_simulation(sim_id, config_obj)
                 return await self.run_simulation(sim_id)
-        
+
         tasks = []
         for i, config in enumerate(configs):
             sim_id = f"batch_{i}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             tasks.append(run_with_semaphore(sim_id, config))
-        
+
         batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for i, result in enumerate(batch_results):
             sim_id = f"batch_{i}"
             if isinstance(result, Exception):
                 results[sim_id] = {'status': 'failed', 'error': str(result)}
             else:
                 results[sim_id] = result
-        
+
         # Generate batch report
         self._generate_batch_report(results)
-        
+
         return results
-    
+
     def _json_safe(self, value):
         """Recursively convert enums/dataclasses into JSON-safe primitives."""
         from enum import Enum
@@ -282,7 +309,7 @@ class SimulationRunner:
         result_file = Path(f"data/results/{sim_id}_result.json")
         with open(result_file, 'w') as f:
             json.dump(self._json_safe(result), f, indent=2, default=str)
-    
+
     def _generate_batch_report(self, results: Dict[str, Any]):
         """Generate batch report"""
         report = {
@@ -292,28 +319,28 @@ class SimulationRunner:
             'failed': sum(1 for r in results.values() if r.get('status') == 'failed'),
             'results': results
         }
-        
+
         report_file = Path(
             f"data/reports/batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         )
         with open(report_file, 'w') as f:
             json.dump(report, f, indent=2, default=str)
-        
+
         logger.info(f"📊 Batch report generated: {report_file}")
-    
+
     def get_result(self, sim_id: str) -> Optional[Dict[str, Any]]:
         """Get simulation result"""
         if sim_id in self.results:
             return self._json_safe(self.results[sim_id])
         return None
-    
+
     def get_all_results(self) -> Dict[str, Any]:
         """Get all simulation results"""
         return {
             sim_id: result.__dict__ if hasattr(result, '__dict__') else result
             for sim_id, result in self.results.items()
         }
-    
+
     def get_status(self, sim_id: str) -> Dict[str, Any]:
         """Get simulation status"""
         if sim_id in self.simulations:
@@ -327,20 +354,20 @@ class SimulationRunner:
                 'config': engine.config.to_dict() if hasattr(engine.config, 'to_dict') else {}
             }
         return {'error': 'Simulation not found'}
-    
+
     def delete_simulation(self, sim_id: str):
         """Delete simulation and its data"""
         if sim_id in self.simulations:
             if self.simulations[sim_id].status.value in ['running', 'paused']:
                 self.stop_simulation(sim_id)
             del self.simulations[sim_id]
-            
+
             if sim_id in self.results:
                 del self.results[sim_id]
-            
+
             # Remove cache file
             cache_file = Path(f"data/cache/{sim_id}.pkl")
             if cache_file.exists():
                 cache_file.unlink()
-            
+
             logger.info(f"🗑️ Deleted simulation: {sim_id}")

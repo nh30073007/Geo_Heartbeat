@@ -59,3 +59,301 @@
 .boot-screen{min-height:100vh;background:#040a12;display:grid;place-items:center;color:#dbeafe}.boot-card{width:290px;padding:28px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(180deg,#091522,#050d17);display:grid;place-items:center;gap:8px;box-shadow:0 20px 70px rgba(0,0,0,.4)}.boot-card span{font-size:9px;color:#718198}.boot-orbit{width:58px;height:58px;border-radius:50%;border:1px solid rgba(59,130,246,.35);display:grid;place-items:center;color:#60a5fa;animation:pulse-orbit 1.5s infinite}.modal-backdrop{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.68);backdrop-filter:blur(7px);display:grid;place-items:center;padding:18px}.modal-card{width:min(760px,96vw);max-height:86vh;overflow:auto;border:1px solid rgba(96,165,250,.22);border-radius:10px;background:linear-gradient(180deg,#091522,#050c15);box-shadow:0 30px 100px rgba(0,0,0,.55)}.modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line);background:rgba(7,16,27,.96)}.modal-head h2{margin:4px 0 0;font-size:17px}.modal-muted{color:#74869d;font-size:10px;line-height:1.6;margin:0 0 12px}.modal-body{padding:16px 18px}.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scenario-card{border:1px solid var(--line);border-radius:8px;background:#08121e;color:#dbeafe;text-align:left;padding:12px;min-height:130px;transition:.18s}.scenario-card:hover,.scenario-card.selected{border-color:rgba(59,130,246,.5);background:#0b1a2b;transform:translateY(-1px)}.scenario-card b,.scenario-card span,.scenario-card small,.scenario-card em{display:block}.scenario-card b{font-size:11px}.scenario-card span{font-size:8px;color:#60a5fa;margin-top:3px;text-transform:uppercase}.scenario-card small{font-size:9px;color:#778aa1;line-height:1.45;margin-top:9px}.scenario-card em{font-size:7px;color:#52677f;font-style:normal;margin-top:8px}.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.report-grid button{min-height:105px;border:1px solid var(--line);border-radius:8px;background:#08121e;color:#bfdbfe;text-align:left;padding:14px;display:flex;flex-direction:column;gap:6px}.report-grid button:hover{background:#0c1b2c;border-color:rgba(59,130,246,.4)}.report-grid b{font-size:10px;color:#e6edf7}.report-grid small{font-size:8px;color:#687b92}.modal-info{margin-top:12px;padding:10px;border:1px solid rgba(34,197,94,.13);background:rgba(34,197,94,.035);border-radius:7px;color:#71869d;font-size:8px;display:flex;align-items:center;gap:7px}.modal-info svg{color:#4ade80;flex:none}.settings-row{display:flex;align-items:center;justify-content:space-between;padding:13px 2px;border-bottom:1px solid rgba(148,163,184,.08)}.settings-row b,.settings-row small{display:block}.settings-row b{font-size:10px}.settings-row small{font-size:8px;color:#657991;margin-top:3px}.setting-pill{font-size:7px;padding:4px 7px;border-radius:4px;background:rgba(245,158,11,.08);color:#fbbf24;border:1px solid rgba(245,158,11,.15)}.setting-pill.good{background:rgba(34,197,94,.08);color:#4ade80;border-color:rgba(34,197,94,.15)}.notification-list>div{display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(148,163,184,.07)}.notification-list p{margin:0;color:#a9b8ca;font-size:9px}.empty-state{justify-content:center;flex-direction:column;padding:35px!important;color:#60738a}.profile-card{display:flex;align-items:center;gap:12px;padding:18px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.015)}.profile-avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;border:1px solid #3b82f6;color:#bfdbfe;background:#0b1726}.profile-card b,.profile-card span,.profile-card small{display:block}.profile-card b{font-size:13px}.profile-card span{font-size:9px;color:#8ca0b8;margin-top:3px}.profile-card small{font-size:8px;color:#5e728a;margin-top:6px}@keyframes pulse-orbit{50%{box-shadow:0 0 30px rgba(59,130,246,.2);transform:scale(1.04)}}
 @media(max-width:650px){.scenario-grid,.report-grid{grid-template-columns:1fr}.modal-card{max-height:90vh}.modal-body{padding:12px}}
 .search-results{position:fixed;top:70px;right:285px;width:390px;z-index:90;border:1px solid rgba(96,165,250,.2);border-radius:8px;background:#07111d;box-shadow:0 24px 70px rgba(0,0,0,.5);overflow:hidden}.search-results-head{height:34px;display:flex;align-items:center;gap:7px;padding:0 10px;color:#7890aa;font-size:8px;border-bottom:1px solid var(--line)}.search-results-head button{margin-left:auto;background:transparent;border:0;color:#718198}.search-results>button{width:100%;display:flex;gap:9px;text-align:left;padding:9px 10px;background:transparent;border:0;border-bottom:1px solid rgba(148,163,184,.06);color:#dbeafe}.search-results>button:hover{background:rgba(59,130,246,.08)}.search-results>button b,.search-results>button small{display:block}.search-results>button b{font-size:9px}.search-results>button small{font-size:7px;color:#718198;margin-top:2px}.search-kind{min-width:55px;height:18px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;text-transform:uppercase;font-size:6px;color:#60a5fa}.search-kind.warning{color:#fbbf24}.search-kind.critical{color:#f87171}.search-kind.success{color:#4ade80}.filter-row{display:flex;gap:8px;margin-bottom:10px}.filter-row select{flex:1;height:32px;background:#08121e;border:1px solid var(--line);border-radius:6px;color:#b9c8da;padding:0 8px;font-size:8px}.panel-link{cursor:pointer}@media(max-width:980px){.search-results{left:12px;right:12px;top:64px;width:auto}}@media(max-width:650px){.search-results{top:62px}.filter-row{flex-direction:column}}
+
+/* ============================================================
+   STEP 3: Data Source Badges (LIVE / SIMULATED / HYBRID / STATIC)
+   ============================================================ */
+.data-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.5px;
+  padding:1px 6px;
+  border-radius:999px;
+  border:1px solid transparent;
+  text-transform:uppercase;
+  line-height:1.4;
+  white-space:nowrap;
+  cursor:help;
+  vertical-align:middle;
+}
+.data-badge .dot{
+  width:5px;height:5px;border-radius:50%;background:currentColor;
+  display:inline-block;
+  flex:none;
+}
+
+/* LIVE — green */
+.data-badge.live{
+  color:#4ade80;
+  background:rgba(34,197,94,.10);
+  border-color:rgba(34,197,94,.30);
+}
+.data-badge.live .dot{
+  animation:data-badge-pulse 1.6s ease-in-out infinite;
+}
+
+/* SIMULATED — orange */
+.data-badge.simulated{
+  color:#fb923c;
+  background:rgba(249,115,22,.10);
+  border-color:rgba(249,115,22,.30);
+}
+
+/* HYBRID — blue */
+.data-badge.hybrid{
+  color:#60a5fa;
+  background:rgba(59,130,246,.10);
+  border-color:rgba(59,130,246,.30);
+}
+
+/* STATIC — grey */
+.data-badge.static{
+  color:#94a3b8;
+  background:rgba(148,163,184,.10);
+  border-color:rgba(148,163,184,.30);
+}
+
+@keyframes data-badge-pulse{
+  0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(74,222,128,.5)}
+  50%{opacity:.7;box-shadow:0 0 0 4px rgba(74,222,128,0)}
+}
+
+/* Badge legend (optional) */
+.data-badge-legend{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 12px;
+  font-size:8px;
+  color:#8ea0b6;
+  flex-wrap:wrap;
+}
+.data-badge-legend span{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+
+
+/* ============================================================
+   STEP 3A: Data transparency — KPI badges, banner, panel badges,
+   sidebar live-info. All in one place.
+   ============================================================ */
+
+/* ---- 1. KPI top-right layout (badge + icon) ---- */
+.kpi-top-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpi-source-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  line-height: 1;
+  cursor: help;
+  border: 1px solid transparent;
+}
+
+.kpi-source-badge.simulated {
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.35);
+}
+
+.kpi-source-badge.live {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.kpi-source-badge.hybrid {
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.kpi-source-badge.static {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+/* ---- 2. Data integrity banner (under status strip) ---- */
+.data-integrity-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 10px;
+  padding: 8px 12px;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.data-integrity-banner > svg {
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.data-integrity-banner b {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.data-integrity-banner em {
+  color: #fb923c;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.data-integrity-banner .badge-inline {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin: 0 2px;
+  letter-spacing: 0.3px;
+}
+
+.data-integrity-banner .badge-inline.sim {
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.data-integrity-banner .badge-inline.live {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.banner-dismiss {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.banner-dismiss:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ---- 3. Panel title + inline source badge ---- */
+/* IMPORTANT: keep .panel-title's block layout, only add inline-flex
+   when a badge is present. Use a modifier class instead. */
+.panel-title {
+  /* keep the original block layout from above */
+  margin: 2px 0 0;
+  color: #e6edf7;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.panel-title.has-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
+.panel-source-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  line-height: 1;
+  cursor: help;
+  border: 1px solid transparent;
+}
+
+.panel-source-badge.simulated {
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.35);
+}
+
+.panel-source-badge.live {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.panel-source-badge.hybrid {
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.panel-source-badge.static {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+/* ---- 4. Sidebar live-info button + dropdown body ---- */
+.sidebar-live-info {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: #86efac;
+  cursor: pointer;
+  padding: 2px;
+  display: grid;
+  place-items: center;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.sidebar-live-info:hover {
+  opacity: 1;
+}
+
+.sidebar-live-info-body {
+  margin: 0 10px 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.sidebar-live-info-body b {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.sidebar-live-info-body em {
+  color: #fb923c;
+  font-style: normal;
+  font-weight: 600;
+}

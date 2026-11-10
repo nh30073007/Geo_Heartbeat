@@ -228,7 +228,8 @@ GET    /api/analytics/performance/{sim_id}
 WebSocket
 text
 WS     /ws?room={sim_id}
-🤝 Contributing
+
+Contributing
 Fork the repository
 
 Create your feature branch (git checkout -b feature/amazing-feature)

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from 'react';
 import axios from 'axios';
-import { Activity, CheckCircle2, Download, FileText, Gauge, RefreshCw, Settings2, ShieldCheck, X, Search, Database } from 'lucide-react';
+import { Activity, CheckCircle2, Download, FileText, Gauge, RefreshCw, Settings2, ShieldCheck, X, Search, Database, Info } from 'lucide-react';
 import { useSimulation } from '../../hooks/useSimulation';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useCountry } from '../../hooks/useCountry';
@@ -36,7 +36,7 @@ const demo: SimulationState = {
   strategic_tension: 31,
   public_sentiment: 0.18,
   supply_chain_stability: 71,
-  ai_capability: 77
+  ai_capability: 77,
 };
 
 function resolveApiBase(): string {
@@ -59,8 +59,12 @@ function resolveWsBase() {
 const WS_BASE = resolveWsBase();
 
 type Scenario = {
-  id: string; name: string; description: string;
-  difficulty: string; category: string; tags: string[];
+  id: string;
+  name: string;
+  description: string;
+  difficulty: string;
+  category: string;
+  tags: string[];
 };
 type SearchResult = { kind: string; id: string; title: string; subtitle: string; severity: string; target: string };
 type CalendarEvent = { id: string; name: string; type: string; round: number; date: string };
@@ -73,7 +77,7 @@ export default function Dashboard() {
     startSimulation, pauseSimulation, resumeSimulation,
     getState, getHistory, getForecast, stepSimulation,
     resetBackendSimulation, executeAction, createCheckpoint,
-    exportState, updateState, simulateLocalTick, stopPolling
+    exportState, updateState, simulateLocalTick, stopPolling,
   } = sim;
 
   // Country panel state
@@ -84,7 +88,9 @@ export default function Dashboard() {
   const [toast, setToast] = useState('');
   const [running, setRunning] = useState(false);
   const [booted, setBooted] = useState(false);
-  const [modal, setModal] = useState<'scenario' | 'reports' | 'settings' | 'notifications' | 'profile' | 'calendar' | null>(null);
+  const [modal, setModal] = useState<
+    'scenario' | 'reports' | 'settings' | 'notifications' | 'profile' | 'calendar' | null
+  >(null);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [scenarioFilter, setScenarioFilter] = useState('all');
   const [scenarioDifficulty, setScenarioDifficulty] = useState('all');
@@ -92,6 +98,7 @@ export default function Dashboard() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [calendar, setCalendar] = useState<CalendarEvent[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [dataBannerDismissed, setDataBannerDismissed] = useState(false);
 
   const bootedRef = useRef(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,7 +117,7 @@ export default function Dashboard() {
       const [overview, cal, eventData] = await Promise.all([
         axios.get(`${API}/dashboard/overview/${id}?history_limit=120`),
         axios.get(`${API}/dashboard/calendar/${id}`),
-        axios.get(`${API}/dashboard/events/${id}?limit=30`)
+        axios.get(`${API}/dashboard/events/${id}?limit=30`),
       ]);
       const o = overview.data;
       const normalized = o?.state;
@@ -152,10 +159,12 @@ export default function Dashboard() {
       setBooted(true);
     })();
 
-    return () => { stopPolling(); };
+    return () => {
+      stopPolling();
+    };
   }, [createSimulation, startSimulation, createLocalSimulation, stopPolling]);
 
-  // WebSocket handler — also refresh country card
+  // WebSocket handler
   useEffect(() => {
     if (!lastMessage) return;
     const msg = lastMessage as WebSocketMessage<any>;
@@ -169,14 +178,13 @@ export default function Dashboard() {
       }
       if (payload?.status) setRunning(payload.status === 'running');
 
-      // Refresh open country card so it reflects the new round immediately
       if (selectedCountry) country.refresh();
     }
 
     if (msg.type === 'simulation_event') {
       const e = msg.data?.event || {};
       const t = e?.type;
-      if (t) setEvents(prev => [{ ...e, id: e.id || `${t}-${Date.now()}` }, ...prev].slice(0, 30));
+      if (t) setEvents((prev) => [{ ...e, id: e.id || `${t}-${Date.now()}` }, ...prev].slice(0, 30));
       if (t === 'simulation_paused') setRunning(false);
       if (t === 'simulation_resumed') setRunning(true);
       if (t === 'simulation_completed' || t === 'simulation_stopped') setRunning(false);
@@ -184,10 +192,13 @@ export default function Dashboard() {
   }, [lastMessage, updateState, simulation?.current_round, selectedCountry, country]);
 
   // Country selection handler
-  const handleSelectCountry = useCallback((countryId: string) => {
-    setSelectedCountry(countryId);
-    country.fetchCountry(countryId);
-  }, [country]);
+  const handleSelectCountry = useCallback(
+    (countryId: string) => {
+      setSelectedCountry(countryId);
+      country.fetchCountry(countryId);
+    },
+    [country]
+  );
 
   const handleCloseCountry = useCallback(() => {
     setSelectedCountry(null);
@@ -195,57 +206,90 @@ export default function Dashboard() {
   }, [country]);
 
   const state = simulation?.state || demo;
-  const globalStability = Math.max(0, Math.min(100, Math.round(
-    (state.economic_stability + state.trade_stability + state.currency_stability + state.supply_chain_stability) / 4 -
-    state.strategic_tension * 0.18 +
-    state.public_sentiment * 4
-  )));
+  const globalStability = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        (state.economic_stability +
+          state.trade_stability +
+          state.currency_stability +
+          state.supply_chain_stability) /
+          4 -
+          state.strategic_tension * 0.18 +
+          state.public_sentiment * 4
+      )
+    )
+  );
   const turn = simulation?.current_round || 0;
   const conflicts = 5;
-  const selectedScenario = scenarios.find(s => s.id === 'multipolar_world');
-  const filteredScenarios = scenarios.filter(s =>
-    (scenarioFilter === 'all' || s.category === scenarioFilter) &&
-    (scenarioDifficulty === 'all' || s.difficulty === scenarioDifficulty)
+  const selectedScenario = scenarios.find((s) => s.id === 'multipolar_world');
+  const filteredScenarios = scenarios.filter(
+    (s) =>
+      (scenarioFilter === 'all' || s.category === scenarioFilter) &&
+      (scenarioDifficulty === 'all' || s.difficulty === scenarioDifficulty)
   );
 
   const handleNavigate = (label: string, sectionId: string | null) => {
     if (label === 'Reports' || label === 'Settings' || label === 'Notifications' || label === 'Profile') {
-      setModal(label === 'Reports' ? 'reports' : label === 'Settings' ? 'settings' : label === 'Notifications' ? 'notifications' : 'profile');
+      setModal(
+        label === 'Reports'
+          ? 'reports'
+          : label === 'Settings'
+          ? 'settings'
+          : label === 'Notifications'
+          ? 'notifications'
+          : 'profile'
+      );
       return;
     }
-    if (label === 'Dashboard') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (label === 'Dashboard') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (sectionId) document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleSearch = (value: string) => {
     setSearch(value);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!value.trim()) { setSearchResults([]); return; }
+    if (!value.trim()) {
+      setSearchResults([]);
+      return;
+    }
     searchTimer.current = setTimeout(async () => {
       try {
         const r = await axios.get(`${API}/dashboard/search/${simId}`, { params: { q: value, limit: 10 } });
         setSearchResults(r.data.results || []);
-      } catch { setSearchResults([]); }
+      } catch {
+        setSearchResults([]);
+      }
     }, 250);
   };
 
   const selectSearch = (item: SearchResult) => {
     document.getElementById(item.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setSearch(''); setSearchResults([]);
+    setSearch('');
+    setSearchResults([]);
   };
 
   const toggle = async () => {
     if (!simulation) return;
     if (running) {
       if (simId !== 'demo-local') await pauseSimulation(simulation.id);
-      setStatus('paused'); setRunning(false); notify('⏸️ Simulation paused');
+      setStatus('paused');
+      setRunning(false);
+      notify('⏸️ Simulation paused');
     } else {
       if (simId === 'demo-local') {
-        setRunning(true); setStatus('running'); notify('▶️ Local simulation resumed');
+        setRunning(true);
+        setStatus('running');
+        notify('▶️ Local simulation resumed');
       } else {
-        const ok = simulation.status === 'created' || simulation.status === 'stopped'
-          ? await startSimulation(simulation.id)
-          : await resumeSimulation(simulation.id);
+        const ok =
+          simulation.status === 'created' || simulation.status === 'stopped'
+            ? await startSimulation(simulation.id)
+            : await resumeSimulation(simulation.id);
         setRunning(Boolean(ok));
         notify(ok ? '▶️ Simulation resumed' : '❌ Failed to resume');
       }
@@ -254,19 +298,32 @@ export default function Dashboard() {
 
   const advance = async () => {
     if (!simulation) return;
-    if (simId === 'demo-local') { simulateLocalTick(); notify('⏩ Local turn advanced'); return; }
-    if (running) { await getState(simulation.id); notify('📊 Live telemetry refreshed'); }
-    else {
-      const result = await stepSimulation(simulation.id);
-      if (result) { await getHistory(simulation.id); notify('⏩ One strategic turn advanced'); }
+    if (simId === 'demo-local') {
+      simulateLocalTick();
+      notify('⏩ Local turn advanced');
+      return;
     }
-    // If a country card is open, refresh it
+    if (running) {
+      await getState(simulation.id);
+      notify('📊 Live telemetry refreshed');
+    } else {
+      const result = await stepSimulation(simulation.id);
+      if (result) {
+        await getHistory(simulation.id);
+        notify('⏩ One strategic turn advanced');
+      }
+    }
     if (selectedCountry) country.refresh();
   };
 
   const reset = async () => {
     if (!simulation) return;
-    if (simId === 'demo-local') { createLocalSimulation(500); setRunning(false); notify('🔄 Local simulation reset'); return; }
+    if (simId === 'demo-local') {
+      createLocalSimulation(500);
+      setRunning(false);
+      notify('🔄 Local simulation reset');
+      return;
+    }
     await resetBackendSimulation(simulation.id);
     setRunning(false);
     await hydrate(simulation.id);
@@ -279,11 +336,17 @@ export default function Dashboard() {
     if (simId === 'demo-local') {
       const delta = name === 'Create Crisis' ? 4 : name === 'Peace Negotiation' ? -4 : -1;
       updateState({ strategic_tension: Math.max(0, Math.min(100, state.strategic_tension + delta)) });
-      notify(`${name} applied locally`); return;
+      notify(`${name} applied locally`);
+      return;
     }
     const result = await executeAction(simulation.id, name);
     if (result) {
-      setEvents(prev => [{ type: 'user_action', data: { action: name, round: turn }, timestamp: new Date().toISOString() }, ...prev].slice(0, 30));
+      setEvents((prev) =>
+        [
+          { type: 'user_action', data: { action: name, round: turn }, timestamp: new Date().toISOString() },
+          ...prev,
+        ].slice(0, 30)
+      );
       if (selectedCountry) country.refresh();
       notify(`${name} applied to environment`);
     }
@@ -297,22 +360,33 @@ export default function Dashboard() {
   };
 
   const downloadReport = async (format: 'json' | 'csv') => {
-    if (!simId || simId === 'demo-local') { notify('Run a backend simulation before exporting'); return; }
+    if (!simId || simId === 'demo-local') {
+      notify('Run a backend simulation before exporting');
+      return;
+    }
     try {
       if (format === 'csv') {
         const r = await axios.get(`${API}/analytics/report/${simId}?format=csv`, { responseType: 'blob' });
         const url = URL.createObjectURL(r.data);
-        const a = document.createElement('a'); a.href = url; a.download = `geopolis-report-${simId}.csv`; a.click();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `geopolis-report-${simId}.csv`;
+        a.click();
         URL.revokeObjectURL(url);
       } else {
         const r = await axios.get(`${API}/analytics/report/${simId}?format=json`);
         const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `geopolis-report-${simId}.json`; a.click();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `geopolis-report-${simId}.json`;
+        a.click();
         URL.revokeObjectURL(url);
       }
       notify(`${format.toUpperCase()} report exported`);
-    } catch { notify('Report export failed'); }
+    } catch {
+      notify('Report export failed');
+    }
   };
 
   const doExport = async () => {
@@ -321,7 +395,10 @@ export default function Dashboard() {
       if (r) {
         const blob = new Blob([JSON.stringify(r, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `state-${simId}.json`; a.click();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `state-${simId}.json`;
+        a.click();
         URL.revokeObjectURL(url);
         notify('Current state exported');
       }
@@ -346,7 +423,9 @@ export default function Dashboard() {
     return (
       <div className="boot-screen">
         <div className="boot-card">
-          <div className="boot-orbit"><Activity size={28} /></div>
+          <div className="boot-orbit">
+            <Activity size={28} />
+          </div>
           <b>INITIALIZING GEOPOLIS</b>
           <span>Connecting simulation engine…</span>
         </div>
@@ -371,21 +450,48 @@ export default function Dashboard() {
         />
         <div className="dashboard">
           <div className="status-strip">
-            <div><span className="live-dot" /> REAL-TIME SIMULATION</div>
+            <div>
+              <span className="live-dot" /> REAL-TIME SIMULATION
+            </div>
             <span>REST hydration · WebSocket telemetry · {simulation?.id || 'initializing'}</span>
             {(error || toast) && <b>{toast || error}</b>}
           </div>
+
+          {/* STEP 3A: Data integrity banner — clarifies live vs simulated */}
+          {!dataBannerDismissed && (
+            <div className="data-integrity-banner" role="note" aria-label="Data integrity notice">
+              <Info size={14} />
+              <span>
+                <b>Data transparency:</b> Global KPIs and strategy forecasts are <em>RL-simulated</em>{' '}
+                scenarios. Country news, sentiment, and World Bank economics are <em>live</em> where
+                available. Look for the <span className="badge-inline sim">SIM</span> and{' '}
+                <span className="badge-inline live">LIVE</span> badges on each tile.
+              </span>
+              <button
+                className="banner-dismiss"
+                onClick={() => setDataBannerDismissed(true)}
+                aria-label="Dismiss"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
 
           {searchResults.length > 0 && (
             <div className="search-results">
               <div className="search-results-head">
                 <Search size={13} /> Backend search results
-                <button onClick={() => setSearchResults([])}><X size={13} /></button>
+                <button onClick={() => setSearchResults([])}>
+                  <X size={13} />
+                </button>
               </div>
-              {searchResults.map(r => (
+              {searchResults.map((r) => (
                 <button key={`${r.kind}-${r.id}`} onClick={() => selectSearch(r)}>
                   <span className={`search-kind ${r.severity}`}>{r.kind}</span>
-                  <div><b>{r.title}</b><small>{r.subtitle}</small></div>
+                  <div>
+                    <b>{r.title}</b>
+                    <small>{r.subtitle}</small>
+                  </div>
                 </button>
               ))}
             </div>
@@ -404,7 +510,9 @@ export default function Dashboard() {
             <div className="left-rail">
               <GlobalStability score={globalStability} />
               <PowerBalance state={state} />
-              <div id="section-economy"><EconomicHealth score={state.economic_stability} /></div>
+              <div id="section-economy">
+                <EconomicHealth score={state.economic_stability} />
+              </div>
               <div id="section-technology">
                 <TechnologyIndex
                   score={state.technology_independence}
@@ -420,15 +528,21 @@ export default function Dashboard() {
                 <WorldMap
                   state={state}
                   selectedId={selectedCountry}
-                  onTool={(tool) => notify(tool === 'fullscreen' ? 'Map fullscreen control ready' : `${tool} layer control applied`)}
+                  onTool={(tool) =>
+                    notify(tool === 'fullscreen' ? 'Map fullscreen control ready' : `${tool} layer control applied`)
+                  }
                   onSelectCountry={handleSelectCountry}
                 />
               </div>
               <div className="two-col">
                 <MilitaryOverview state={state} />
-                <div id="section-treaties"><DiplomaticRelations state={state} /></div>
+                <div id="section-treaties">
+                  <DiplomaticRelations state={state} />
+                </div>
               </div>
-              <div id="section-analytics"><AdvancedChart history={simulation?.history || []} /></div>
+              <div id="section-analytics">
+                <AdvancedChart history={simulation?.history || []} />
+              </div>
               <div className="two-col">
                 <div id="section-agents">
                   <AgentIntelligence
@@ -444,12 +558,21 @@ export default function Dashboard() {
 
             <div className="right-rail">
               <div id="section-conflicts">
-                <ActiveConflicts state={state} onViewAll={() => { setSearch('conflict'); handleSearch('conflict'); }} />
+                <ActiveConflicts
+                  state={state}
+                  onViewAll={() => {
+                    setSearch('conflict');
+                    handleSearch('conflict');
+                  }}
+                />
               </div>
               <UpcomingEvents events={calendar} onOpen={() => setModal('calendar')} />
               <div id="section-resources">
                 <ResourcePressure
-                  score={Math.max(0, Math.min(100, 100 - state.supply_chain_stability + state.strategic_tension * 0.25))}
+                  score={Math.max(
+                    0,
+                    Math.min(100, 100 - state.supply_chain_stability + state.strategic_tension * 0.25)
+                  )}
                   supply={state.supply_chain_stability}
                   economic={state.economic_stability}
                 />
@@ -474,7 +597,10 @@ export default function Dashboard() {
       </main>
       {loading && <div className="loading-bar" />}
       <div className="footer-status">
-        <span><span className={`status-dot ${isConnected ? 'on' : ''}`} />{isConnected ? 'WebSocket connected' : 'Reconnecting…'}</span>
+        <span>
+          <span className={`status-dot ${isConnected ? 'on' : ''}`} />
+          {isConnected ? 'WebSocket connected' : 'Reconnecting…'}
+        </span>
         <span>REST API + live event bus · telemetry protected</span>
       </div>
 
@@ -489,40 +615,72 @@ export default function Dashboard() {
       )}
 
       {modal && (
-        <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setModal(null); }}>
+        <div
+          className="modal-backdrop"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setModal(null);
+          }}
+        >
           <section className="modal-card">
             <div className="modal-head">
               <div>
                 <span className="eyebrow">GEOPOLIS CONTROL</span>
                 <h2>
-                  {modal === 'scenario' ? 'Scenario Library' :
-                   modal === 'reports' ? 'Reports & Export' :
-                   modal === 'settings' ? 'Runtime Settings' :
-                   modal === 'notifications' ? 'Event Stream' :
-                   modal === 'calendar' ? 'Forecast Calendar' :
-                   'Commander Profile'}
+                  {modal === 'scenario'
+                    ? 'Scenario Library'
+                    : modal === 'reports'
+                    ? 'Reports & Export'
+                    : modal === 'settings'
+                    ? 'Runtime Settings'
+                    : modal === 'notifications'
+                    ? 'Event Stream'
+                    : modal === 'calendar'
+                    ? 'Forecast Calendar'
+                    : 'Commander Profile'}
                 </h2>
               </div>
-              <button className="icon-button" onClick={() => setModal(null)}><X size={17} /></button>
+              <button className="icon-button" onClick={() => setModal(null)}>
+                <X size={17} />
+              </button>
             </div>
 
             {modal === 'scenario' && (
               <div className="modal-body">
-                <p className="modal-muted">Filters and scenario metadata are loaded from the backend. Selecting one creates a fresh server-side simulation and reconnects telemetry.</p>
+                <p className="modal-muted">
+                  Filters and scenario metadata are loaded from the backend. Selecting one creates a fresh
+                  server-side simulation and reconnects telemetry.
+                </p>
                 <div className="filter-row">
-                  <select value={scenarioFilter} onChange={e => setScenarioFilter(e.target.value)}>
+                  <select value={scenarioFilter} onChange={(e) => setScenarioFilter(e.target.value)}>
                     <option value="all">All categories</option>
-                    {[...new Set(scenarios.map(s => s.category))].map(v => <option key={v} value={v}>{v}</option>)}
+                    {[...new Set(scenarios.map((s) => s.category))].map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
                   </select>
-                  <select value={scenarioDifficulty} onChange={e => setScenarioDifficulty(e.target.value)}>
+                  <select value={scenarioDifficulty} onChange={(e) => setScenarioDifficulty(e.target.value)}>
                     <option value="all">All difficulty</option>
-                    {[...new Set(scenarios.map(s => s.difficulty))].map(v => <option key={v} value={v}>{v}</option>)}
+                    {[...new Set(scenarios.map((s) => s.difficulty))].map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="scenario-grid">
-                  {filteredScenarios.map(s => (
-                    <button key={s.id} className={`scenario-card ${s.id === simulation?.id ? 'selected' : ''}`} onClick={() => loadScenario(s)}>
-                      <div><b>{s.name}</b><span>{s.category} · {s.difficulty}</span></div>
+                  {filteredScenarios.map((s) => (
+                    <button
+                      key={s.id}
+                      className={`scenario-card ${s.id === simulation?.id ? 'selected' : ''}`}
+                      onClick={() => loadScenario(s)}
+                    >
+                      <div>
+                        <b>{s.name}</b>
+                        <span>
+                          {s.category} · {s.difficulty}
+                        </span>
+                      </div>
                       <small>{s.description}</small>
                       <em>{s.tags?.slice(0, 3).join(' · ')}</em>
                     </button>
@@ -535,29 +693,42 @@ export default function Dashboard() {
               <div className="modal-body">
                 <div className="report-grid">
                   <button onClick={() => downloadReport('json')}>
-                    <FileText size={18} /><b>JSON report</b><small>Full live analytics payload</small>
+                    <FileText size={18} />
+                    <b>JSON report</b>
+                    <small>Full live analytics payload</small>
                   </button>
                   <button onClick={() => downloadReport('csv')}>
-                    <Download size={18} /><b>CSV report</b><small>Performance table</small>
+                    <Download size={18} />
+                    <b>CSV report</b>
+                    <small>Performance table</small>
                   </button>
                   <button onClick={doExport}>
-                    <Download size={18} /><b>State snapshot</b><small>Current simulation state</small>
+                    <Download size={18} />
+                    <b>State snapshot</b>
+                    <small>Current simulation state</small>
                   </button>
                   <button onClick={checkpoint}>
-                    <ShieldCheck size={18} /><b>Create checkpoint</b><small>Recoverable engine state</small>
+                    <ShieldCheck size={18} />
+                    <b>Create checkpoint</b>
+                    <small>Recoverable engine state</small>
                   </button>
                 </div>
-                <div className="modal-info"><CheckCircle2 size={15} /> Reports are generated from the live engine, not placeholder dashboard values.</div>
+                <div className="modal-info">
+                  <CheckCircle2 size={15} /> Reports are generated from the live engine, not placeholder
+                  dashboard values.
+                </div>
               </div>
             )}
 
             {modal === 'calendar' && (
               <div className="modal-body">
                 <div className="notification-list">
-                  {calendar.map(e => (
+                  {calendar.map((e) => (
                     <div key={e.id}>
                       <span className="live-dot" />
-                      <p><b>{e.name}</b> · {e.type} · Round {e.round} · {e.date}</p>
+                      <p>
+                        <b>{e.name}</b> · {e.type} · Round {e.round} · {e.date}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -567,23 +738,42 @@ export default function Dashboard() {
             {modal === 'settings' && (
               <div className="modal-body">
                 <div className="settings-row">
-                  <div><b>Engine mode</b><small>Realtime event-driven execution</small></div>
+                  <div>
+                    <b>Engine mode</b>
+                    <small>Realtime event-driven execution</small>
+                  </div>
                   <span className="setting-pill">REALTIME</span>
                 </div>
                 <div className="settings-row">
-                  <div><b>REST API</b><small>{API}</small></div>
+                  <div>
+                    <b>REST API</b>
+                    <small>{API}</small>
+                  </div>
                   <Database size={17} />
                 </div>
                 <div className="settings-row">
-                  <div><b>WebSocket</b><small>{isConnected ? 'Connected with heartbeat' : 'Reconnecting automatically'}</small></div>
-                  <span className={`setting-pill ${isConnected ? 'good' : ''}`}>{isConnected ? 'ONLINE' : 'OFFLINE'}</span>
+                  <div>
+                    <b>WebSocket</b>
+                    <small>{isConnected ? 'Connected with heartbeat' : 'Reconnecting automatically'}</small>
+                  </div>
+                  <span className={`setting-pill ${isConnected ? 'good' : ''}`}>
+                    {isConnected ? 'ONLINE' : 'OFFLINE'}
+                  </span>
                 </div>
                 <div className="settings-row">
-                  <div><b>Simulation rounds</b><small>{simulation?.current_round || 0} / {simulation?.max_rounds || 500}</small></div>
+                  <div>
+                    <b>Simulation rounds</b>
+                    <small>
+                      {simulation?.current_round || 0} / {simulation?.max_rounds || 500}
+                    </small>
+                  </div>
                   <Gauge size={17} />
                 </div>
                 <div className="settings-row">
-                  <div><b>Data integrity</b><small>REST hydration + WS telemetry + backend event history</small></div>
+                  <div>
+                    <b>Data integrity</b>
+                    <small>REST hydration + WS telemetry + backend event history</small>
+                  </div>
                   <Settings2 size={17} />
                 </div>
               </div>
@@ -592,13 +782,21 @@ export default function Dashboard() {
             {modal === 'notifications' && (
               <div className="modal-body">
                 <div className="notification-list">
-                  {events.length ? events.map((e, i) => (
-                    <div key={`${e.id || e.type}-${i}`}>
-                      <span className="live-dot" />
-                      <p>{e.timestamp ? String(e.timestamp).replace('T', ' ').slice(0, 19) : ''} · {String(e.type || 'event').replaceAll('_', ' ')} · {e.data?.action || e.data?.round || ''}</p>
+                  {events.length ? (
+                    events.map((e, i) => (
+                      <div key={`${e.id || e.type}-${i}`}>
+                        <span className="live-dot" />
+                        <p>
+                          {e.timestamp ? String(e.timestamp).replace('T', ' ').slice(0, 19) : ''} ·{' '}
+                          {String(e.type || 'event').replaceAll('_', ' ')} · {e.data?.action || e.data?.round || ''}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-state">
+                      <RefreshCw size={18} />
+                      <p>Waiting for engine events…</p>
                     </div>
-                  )) : (
-                    <div className="empty-state"><RefreshCw size={18} /><p>Waiting for engine events…</p></div>
                   )}
                 </div>
               </div>
@@ -614,7 +812,9 @@ export default function Dashboard() {
                     <small>Session: local development operator</small>
                   </div>
                 </div>
-                <div className="modal-info"><CheckCircle2 size={15} /> Control actions are audited by the backend event layer.</div>
+                <div className="modal-info">
+                  <CheckCircle2 size={15} /> Control actions are audited by the backend event layer.
+                </div>
               </div>
             )}
           </section>

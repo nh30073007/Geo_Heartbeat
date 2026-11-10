@@ -1,5 +1,7 @@
 // frontend/app/types/country.ts
 
+export type MetricSource = 'live' | 'simulated' | 'hybrid' | 'static';
+
 export interface Country {
   id: string;
   name: string;
@@ -85,9 +87,21 @@ export interface CountryDashboardData {
   sentiment: SentimentData;
 }
 
+// ============================================================
+// STEP 3: Source metadata
+// ============================================================
+export interface CountryMeta {
+  country_id: string;
+  fetched_at: string;
+  news_attached: boolean;
+}
+
 export interface CountryResponse {
   success: boolean;
   data: CountryDashboardData;
+  /** STEP 3: field-path → source type. e.g. "economy.gdp": "live" */
+  _sources?: Record<string, MetricSource>;
+  _meta?: CountryMeta;
   error?: string;
 }
 
@@ -105,4 +119,68 @@ export interface CountryListResponse {
     countries: CountryListItem[];
     total: number;
   };
+}
+
+// ============================================================
+// Live News (unchanged from earlier)
+// ============================================================
+export interface NewsHeadline {
+  title: string;
+  url: string;
+  source: string;
+  tone: number;
+  seendate: string;
+}
+
+export interface RssHeadline {
+  title: string;
+  url: string;
+  source: string;
+  feed: string;
+  published: string;
+}
+
+export interface EconomicIndicators {
+  gdp_usd?: number;
+  gdp_growth?: number;
+  inflation?: number;
+  unemployment?: number;
+  population?: number;
+  exports_pct_gdp?: number;
+  imports_pct_gdp?: number;
+  [key: string]: number | undefined;
+}
+
+export interface ToneDistribution {
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+export interface SourceBreakdown {
+  gdelt: number;
+  rss: number;
+}
+
+export interface LiveNewsData {
+  country_id: string;
+  country_name: string;
+  fetched_at: string;
+  sentiment_score: number;
+  article_count: number;
+  gdelt_count: number;
+  rss_count: number;
+  tone_distribution: ToneDistribution;
+  source_breakdown: SourceBreakdown;
+  top_headlines: NewsHeadline[];
+  top_rss_headlines: RssHeadline[];
+  economic_indicators: EconomicIndicators;
+  _source: string;
+  _cached_at?: string;
+}
+
+export interface LiveNewsResponse {
+  success: boolean;
+  data: LiveNewsData;
+  error?: string;
 }

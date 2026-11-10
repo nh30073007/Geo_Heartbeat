@@ -1,39 +1,156 @@
-# নতুন .gitignore ফাইল তৈরি করুন
-@"
-# Python
-__pycache__/
-*.pyc
-venv/
+# ==========================================
+# 🔒 SECRETS & ENVIRONMENT FILES (CRITICAL!)
+# ==========================================
+# সব .env files ignore করো
 .env
-*.db
-*.sqlite3
-*.log
-*.pkl
-*.dump
-
-# Node.js / NPM - IMPORTANT!
-node_modules/
-frontend/node_modules/
-package-lock.json
-yarn.lock
-.next/
-out/
-dist/
-build/
+.env.*
+*.env
 .env.local
 .env.*.local
+.env.production
+.env.development
+.env.staging
+.env.test
+
+# কিন্তু .env.example COMMIT হবে (template হিসেবে)
+!.env.example
+!.env.example.*
+
+# ==========================================
+# 🗄️ DATABASES & SENSITIVE DATA
+# ==========================================
+*.db
+*.sqlite3
+*.sqlite
+*.dump
+*.sql.gz
+*.pkl
+*.pickle
+*.joblib
+
+# Runtime data folder (simulations, checkpoints, logs)
+data/
+backend/data/
+backend/checkpoints/
+backend/backups/
+backend/logs/
+
+# User uploads / generated files
+uploads/
+user_data/
+*.csv.tmp
+temp/
+tmp/
+
+# ==========================================
+# 🐍 PYTHON
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Testing & coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ==========================================
+# ⚛️ NODE.JS / NPM / NEXT.JS
+# ==========================================
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+dist/
+frontend/dist/
+build/
+frontend/build/
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.logs/
+*.log
 
-# IDE
+# Next.js
+.vercel/
+frontend/.vercel/
+
+# ⚠️ IMPORTANT: package-lock.json ও yarn.lock COMMIT হবে!
+# এগুলো ignore করা উচিত না ❌
+
+# ==========================================
+# 🔧 IDE / EDITOR
+# ==========================================
 .vscode/
+frontend/.vscode/
 .idea/
+frontend/.idea/
 *.swp
 *.swo
-.DS_Store
+*~
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# ==========================================
+# 🖥️ OS FILES
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
 desktop.ini
-"@ | Out-File -FilePath .gitignore -Encoding UTF8
+ehthumbs.db
+
+# ==========================================
+# 🧹 GENERAL
+# ==========================================
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej
+*.pid
+*.seed
+*.pid.lock
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# ==========================================
+# 🚀 DEPLOYMENT
+# ==========================================
+*.pidb
+*.restart
+*.restart-*
+deploy_*.txt
+.htaccess.bak
