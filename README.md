@@ -1,9 +1,9 @@
 # 🌍 Strategic AI Nexus
 ### Real-Time Geopolitical Simulation with Reinforcement Learning Agents
 
-Strategic AI Nexus is a multi-agent geopolitical simulation platform that combines Reinforcement Learning, Game Theory, and real-time analytics to simulate strategic interactions between competing global powers.
+Strategic AI Nexus is a modular multi-agent geopolitical simulation platform combining Reinforcement Learning, Game Theory, and real-time analytics to model strategic interactions between competing global powers.
 
-The platform features adaptive AI agents, dynamic environment modeling, Nash equilibrium analysis, and a real-time interactive dashboard powered by FastAPI WebSockets and Next.js.
+The platform features adaptive AI agents, dynamic environment modeling, Nash equilibrium analysis, predictive analytics, and a real-time dashboard powered by FastAPI and WebSocket communication.
 
 ---
 
@@ -12,12 +12,12 @@ The platform features adaptive AI agents, dynamic environment modeling, Nash equ
 - 🧠 **Reinforcement Learning:** Custom Q-learning agents with epsilon-greedy exploration.
 - 🎮 **Game Theory Engine:** Nash equilibrium analysis, payoff matrices, and mixed-strategy solving.
 - 🌍 **Multi-Agent Simulation:** Hegemon and Sovereign agents with independent strategic doctrines.
-- 📊 **Real-Time Dashboard:** Live geopolitical metrics and interactive visualizations.
-- ⚡ **WebSocket Communication:** Continuous simulation updates without HTTP polling.
-- 📈 **Predictive Analytics:** Trend-based forecasting with confidence intervals.
+- ⚡ **Real-Time Communication:** WebSocket-based live simulation updates.
+- 📊 **Interactive Dashboard:** Live KPIs, agent intelligence, and geopolitical visualizations.
+- 📈 **Predictive Analytics:** Linear-trend forecasting with confidence bands.
 - 🔄 **Scenario Management:** Configurable simulation scenarios and lifecycle controls.
-- 🎯 **Agent Telemetry:** Q-values, rewards, exploration rates, and learning progress.
-- 💾 **Data Persistence:** SQLite database with SQLAlchemy ORM.
+- 🎯 **Agent Telemetry:** Q-values, rewards, and learning progress metrics.
+- 💾 **Data Persistence:** SQLite with SQLAlchemy ORM.
 
 ---
 
@@ -39,7 +39,7 @@ The platform features adaptive AI agents, dynamic environment modeling, Nash equ
 
 # 🏗️ System Architecture
 
-Strategic AI Nexus follows a modular, event-driven multi-agent architecture. The backend coordinates agent decisions, simulation execution, learning updates, analytics, and real-time communication.
+Strategic AI Nexus follows a modular, event-driven architecture. The backend coordinates agent decisions, simulation execution, learning updates, analytics, and real-time communication.
 
 ## 1. High-Level System Architecture
 
@@ -158,7 +158,7 @@ flowchart TD
 
 The platform uses persistent WebSocket connections to deliver live simulation events from the backend to connected dashboard clients.
 
-Unlike traditional HTTP polling, WebSocket enables the backend to push updates whenever new simulation events are available.
+Unlike traditional HTTP polling, WebSocket allows the backend to push updates directly to connected clients.
 
 ```mermaid
 sequenceDiagram
@@ -229,13 +229,13 @@ sequenceDiagram
 }
 ```
 
-*Note: This is an illustrative event payload. Actual fields depend on the backend implementation.*
+*Note: This is an illustrative JSON payload. Actual event fields depend on the backend implementation.*
 
 ---
 
 ## 4. Simulation Data Flow
 
-The following diagram illustrates how agent decisions, simulation processing, learning feedback, analytics, and dashboard communication interact.
+This diagram illustrates how agent decisions, simulation processing, learning feedback, analytics, and dashboard communication interact.
 
 ```mermaid
 flowchart LR
@@ -289,7 +289,7 @@ Represents sovereign powers pursuing resilience, autonomy, and strategic indepen
 
 | Strategy | Name | Description |
 |---|---|---|
-| S1 | Diplomatic | Alliance-building and negotiation |
+| S1 | Diplomatic | Alliance building and negotiation |
 | S2 | Resilient | Defense and institutional resilience |
 | S3 | Assertive | Proactive strategic responses |
 | S4 | Adaptive | Flexible strategy adaptation |
@@ -345,11 +345,12 @@ strategic-ai-nexus/
 │   │   │   └── forecast.py
 │   │   │
 │   │   ├── api/
-│   │   │   └── routes/
-│   │   │       ├── simulation.py
-│   │   │       ├── state.py
-│   │   │       ├── analytics.py
-│   │   │       └── websocket.py
+│   │   │   ├── routes/
+│   │   │   │   ├── simulation.py
+│   │   │   │   ├── state.py
+│   │   │   │   ├── analytics.py
+│   │   │   │   └── websocket.py
+│   │   │   └── websocket.py
 │   │   │
 │   │   ├── core/
 │   │   │   └── runtime.py
@@ -387,7 +388,9 @@ strategic-ai-nexus/
     │   └── types/
     │       └── index.ts
     │
-    └── package.json
+    ├── package.json
+    ├── tailwind.config.js
+    └── tsconfig.json
 ```
 
 ---
@@ -404,9 +407,9 @@ strategic-ai-nexus/
 ## 1. Clone Repository
 
 ```bash
-git clone https://github.com/nh30073007/GEO_POLIS_SIMULATION.git
+git clone https://github.com/nh30073007/Geo_Heartbeat.git
 
-cd GEO_POLIS_SIMULATION
+cd Geo_Heartbeat
 ```
 
 ## 2. Backend Setup
@@ -417,13 +420,13 @@ cd backend
 python -m venv venv
 ```
 
-Windows:
+**Windows:**
 
 ```bash
 venv\Scripts\activate
 ```
 
-Linux / macOS:
+**Linux / macOS:**
 
 ```bash
 source venv/bin/activate
@@ -439,12 +442,6 @@ Configure environment:
 
 ```bash
 copy .env.example .env
-```
-
-Linux / macOS:
-
-```bash
-cp .env.example .env
 ```
 
 Start backend:
