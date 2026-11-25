@@ -1,246 +1,578 @@
 # 🌍 Strategic AI Nexus
+### Real-Time Geopolitical Simulation with Reinforcement Learning Agents
 
-**Real-time Geopolitical Simulation with Reinforcement Learning Agents**
+Strategic AI Nexus is a multi-agent geopolitical simulation platform that combines Reinforcement Learning, Game Theory, and real-time analytics to simulate strategic interactions between competing global powers.
 
-A sophisticated multi-agent simulation platform where Hegemon and Sovereign powers compete through adaptive strategies, game-theoretic decision-making, and continuous reinforcement learning in a dynamic geopolitical landscape.
+The platform features adaptive AI agents, dynamic environment modeling, Nash equilibrium analysis, and a real-time interactive dashboard powered by FastAPI WebSockets and Next.js.
 
 ---
 
 ## ✨ Key Features
 
-- **🧠 Reinforcement Learning Agents** – Q-learning with epsilon-greedy exploration
-- **🎮 Game Theory Engine** – Nash equilibrium analysis, mixed strategy solvers
-- **📊 Real-time Dashboard** – Live state visualization with WebSocket updates
-- **🔄 Configurable Scenarios** – Multiple geopolitical scenarios
-- **📈 Predictive Analytics** – Linear-trend forecasting with confidence bands
-- **🎯 Agent Telemetry** – Real-time learning progress metrics
+- 🧠 **Reinforcement Learning:** Custom Q-learning agents with epsilon-greedy exploration.
+- 🎮 **Game Theory Engine:** Nash equilibrium analysis, payoff matrices, and mixed-strategy solving.
+- 🌍 **Multi-Agent Simulation:** Hegemon and Sovereign agents with independent strategic doctrines.
+- 📊 **Real-Time Dashboard:** Live geopolitical metrics and interactive visualizations.
+- ⚡ **WebSocket Communication:** Continuous simulation updates without HTTP polling.
+- 📈 **Predictive Analytics:** Trend-based forecasting with confidence intervals.
+- 🔄 **Scenario Management:** Configurable simulation scenarios and lifecycle controls.
+- 🎯 **Agent Telemetry:** Q-values, rewards, exploration rates, and learning progress.
+- 💾 **Data Persistence:** SQLite database with SQLAlchemy ORM.
 
 ---
 
 ## 🛠️ Technology Stack
 
 | Component | Technology |
-|-----------|------------|
-| **Backend** | Python 3.9+, FastAPI, WebSocket |
-| **AI/ML** | Custom Q-learning, NumPy, SciPy |
-| **Game Theory** | Nash equilibrium, LP solvers |
-| **Frontend** | Next.js 14, TypeScript, Tailwind CSS |
-| **Realtime** | WebSocket with heartbeat management |
-| **Database** | SQLite with SQLAlchemy ORM |
-| **Charts** | Recharts |
-
-
-
-
-
-
-
-
-
-
+|---|---|
+| Backend | Python, FastAPI |
+| AI / ML | Custom Q-Learning, NumPy |
+| Game Theory | Nash Equilibrium, SciPy |
+| Frontend | Next.js 14, TypeScript |
+| Styling | Tailwind CSS |
+| Real-Time | WebSocket |
+| Database | SQLite, SQLAlchemy |
+| Visualization | Recharts |
+| API | REST API |
 
 ---
 
-## 📁 Project Structure
+# 🏗️ System Architecture
+
+Strategic AI Nexus follows a modular, event-driven multi-agent architecture. The backend coordinates agent decisions, simulation execution, learning updates, analytics, and real-time communication.
+
+## 1. High-Level System Architecture
+
+```mermaid
+flowchart TB
+    A["Next.js 14 Dashboard"]
+    B["FastAPI Backend"]
+    C["Shared Application Runtime"]
+
+    D["Hegemon Agent"]
+    E["Sovereign Agent"]
+
+    F["Game Theory Engine"]
+    G["Simulation Engine"]
+    H["Environment & State Transition"]
+    I["Q-Learning Update"]
+
+    J["Analytics & Forecasting"]
+    K[("SQLite Database")]
+    L["WebSocket Manager"]
+
+    A <-->|"REST API"| B
+    A <-->|"WebSocket"| L
+
+    B --> C
+    C --> D
+    C --> E
+
+    D --> F
+    E --> F
+
+    F --> G
+    G --> H
+    H --> I
+
+    I --> D
+    I --> E
+
+    H --> J
+    H --> K
+
+    C --> L
+
+    style A fill:#2563eb,color:#fff
+    style B fill:#0f766e,color:#fff
+    style G fill:#7c3aed,color:#fff
+    style L fill:#15803d,color:#fff
+```
+
+### Architecture Components
+
+| Layer | Responsibility |
+|---|---|
+| Frontend | Dashboard and visualization |
+| API Layer | REST endpoints and WebSocket routes |
+| Runtime | Centralized simulation lifecycle |
+| Agent Layer | Independent reinforcement learning agents |
+| Game Theory | Strategic interaction and equilibrium analysis |
+| Simulation | Round execution and state transitions |
+| Analytics | Forecasting and performance analysis |
+| Database | Simulation data persistence |
+| WebSocket | Real-time event broadcasting |
+
+---
+
+## 2. Reinforcement Learning Workflow
+
+Both agents interact with the simulation environment through a continuous learning loop.
+
+```mermaid
+flowchart TD
+    A["Initialize Simulation"]
+    B["Observe Environment State"]
+    C["Hegemon & Sovereign Agents"]
+    D["Epsilon-Greedy Strategy Selection"]
+    E["Game Theory Analysis"]
+    F["Execute Simulation Round"]
+    G["Calculate Rewards"]
+    H["Update Q-Tables"]
+    I["Decay Epsilon"]
+    J["Update Environment State"]
+    K{"Continue Simulation?"}
+    L["Stop Simulation"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+
+    K -->|Yes| B
+    K -->|No| L
+
+    style C fill:#2563eb,color:#fff
+    style H fill:#15803d,color:#fff
+```
+
+### Learning Process
+
+1. Agents observe the current environment state.
+2. Each agent selects a strategy using an epsilon-greedy policy.
+3. The Game Theory Engine evaluates strategic interactions.
+4. The Simulation Engine processes the selected actions.
+5. Rewards are calculated based on the resulting state.
+6. Q-values are updated using the learning algorithm.
+7. Epsilon gradually decreases to balance exploration and exploitation.
+
+---
+
+## 3. Real-Time WebSocket Architecture
+
+The platform uses persistent WebSocket connections to deliver live simulation events from the backend to connected dashboard clients.
+
+Unlike traditional HTTP polling, WebSocket enables the backend to push updates whenever new simulation events are available.
+
+```mermaid
+sequenceDiagram
+    participant UI as Next.js Dashboard
+    participant WS as WebSocket Manager
+    participant API as FastAPI Backend
+    participant SIM as Simulation Runner
+    participant ENV as Environment
+    participant RL as RL Agents
+
+    UI->>WS: Connect /ws?room=sim_id
+    WS->>WS: Register Client
+    WS-->>UI: Connection Established
+
+    UI->>API: Start Simulation (REST)
+    API->>SIM: Start Runner
+
+    loop Every Simulation Round
+        SIM->>RL: Request Agent Actions
+        RL-->>SIM: Selected Strategies
+
+        SIM->>ENV: Execute State Transition
+        ENV-->>SIM: Updated Environment State
+
+        SIM->>RL: Calculate Rewards & Update Q-Values
+
+        SIM->>WS: Publish Simulation Event
+        WS-->>UI: Broadcast JSON Update
+
+        UI->>UI: Update KPIs & Charts
+    end
+
+    UI->>WS: Disconnect
+    WS->>WS: Remove Client Connection
+```
+
+### WebSocket Communication Process
+
+- **Connection:** Frontend establishes a persistent WebSocket connection.
+- **Room Management:** Clients are associated with their respective simulation IDs.
+- **Event Generation:** Simulation rounds generate updated state information.
+- **Broadcasting:** WebSocket Manager distributes events to connected clients.
+- **Visualization:** Frontend updates KPIs, charts, and agent telemetry.
+- **Connection Management:** Heartbeat and disconnect handling help maintain connection reliability.
+
+### Example Simulation Event
+
+```json
+{
+  "event": "simulation_update",
+  "simulation_id": "simulation_01",
+  "round": 25,
+  "state": {
+    "economy": 76.5,
+    "tension": 42.8,
+    "stability": 68.2
+  },
+  "agents": {
+    "hegemon": {
+      "reward": 12.5,
+      "epsilon": 0.15
+    },
+    "sovereign": {
+      "reward": 15.2,
+      "epsilon": 0.12
+    }
+  }
+}
+```
+
+*Note: This is an illustrative event payload. Actual fields depend on the backend implementation.*
+
+---
+
+## 4. Simulation Data Flow
+
+The following diagram illustrates how agent decisions, simulation processing, learning feedback, analytics, and dashboard communication interact.
+
+```mermaid
+flowchart LR
+    A["Agent Decisions"]
+    B["Game Theory Engine"]
+    C["Simulation Engine"]
+    D["Environment State"]
+    E["Reward Calculation"]
+    F["Q-Learning Update"]
+    G["Analytics Engine"]
+    H[("SQLite Database")]
+    I["WebSocket Events"]
+    J["Next.js Dashboard"]
+
+    A --> B
+    B --> C
+    C --> D
+
+    D --> E
+    E --> F
+    F --> A
+
+    D --> G
+    D --> H
+    D --> I
+    I --> J
+
+    style F fill:#7c3aed,color:#fff
+    style I fill:#15803d,color:#fff
+    style J fill:#2563eb,color:#fff
+```
+
+---
+
+# 🤖 Multi-Agent System
+
+## Hegemon Agent
+
+Represents a dominant geopolitical power operating through different strategic doctrines.
+
+| Strategy | Name | Description |
+|---|---|---|
+| H1 | Expansionist | Pursues strategic expansion |
+| H2 | Stabilizer | Maintains the status quo |
+| H3 | Disruptor | Introduces strategic uncertainty |
+| H4 | Dominator | Pursues overwhelming influence |
+
+## Sovereign Agent
+
+Represents sovereign powers pursuing resilience, autonomy, and strategic independence.
+
+| Strategy | Name | Description |
+|---|---|---|
+| S1 | Diplomatic | Alliance-building and negotiation |
+| S2 | Resilient | Defense and institutional resilience |
+| S3 | Assertive | Proactive strategic responses |
+| S4 | Adaptive | Flexible strategy adaptation |
+
+---
+
+# 📊 Dashboard Features
+
+| Component | Description |
+|---|---|
+| KPI Strip | Economy, tension, and stability metrics |
+| Power Balance | Comparative agent influence |
+| World Map | Geopolitical visualization |
+| Agent Intelligence | RL telemetry and Q-value trends |
+| Forecast Panel | Trend-based predictions |
+| Conflict Tracker | Conflict monitoring |
+| Military Overview | Strategic readiness indicators |
+| Diplomatic Relations | Alliance and tension visualization |
+
+---
+
+# 📁 Project Structure
+
+```text
 strategic-ai-nexus/
 │
-├── backend/ # FastAPI Backend
-│ ├── app/
-│ │ ├── agents/ # RL Agent Implementation
-│ │ │ ├── base_agent.py # Q-learning base class
-│ │ │ ├── hegemon_agent.py # Hegemon (4 strategies)
-│ │ │ └── sovereign_agent.py # Sovereign (4 strategies)
-│ │ │
-│ │ ├── game_theory/ # Game Theory Engine
-│ │ │ ├── equilibrium.py # Nash equilibrium analyzer
-│ │ │ ├── mixed_strategy.py # LP + fictitious play solver
-│ │ │ └── payoff_matrix.py # Adaptive payoff matrix
-│ │ │
-│ │ ├── simulation/ # Simulation Core
-│ │ │ ├── engine.py # Round execution engine
-│ │ │ ├── runner.py # Simulation lifecycle manager
-│ │ │ └── scenarios.py # Predefined scenarios
-│ │ │
-│ │ ├── realtime/ # WebSocket Management
-│ │ │ └── websocket.py # Connection manager
-│ │ │
-│ │ ├── analytics/ # Forecasting Engine
-│ │ │ └── forecast.py # Trend analysis
-│ │ │
-│ │ ├── api/ # REST API Routes
-│ │ │ ├── routes/
-│ │ │ │ ├── simulation.py # Simulation CRUD
-│ │ │ │ ├── state.py # State management
-│ │ │ │ ├── analytics.py # Analytics endpoints
-│ │ │ │ └── websocket.py # WebSocket route handler
-│ │ │ └── websocket.py # WebSocket handler
-│ │ │
-│ │ ├── environment/ # Environment State
-│ │ │ ├── environment.py # Environment wrapper
-│ │ │ ├── state.py # State models
-│ │ │ └── transition.py # State transition logic
-│ │ │
-│ │ ├── core/ # Core Utilities
-│ │ │ └── runtime.py # Application runtime
-│ │ │
-│ │ ├── database/ # Database Layer
-│ │ │ ├── models.py # SQLAlchemy models
-│ │ │ ├── crud.py # CRUD operations
-│ │ │ └── session.py # Database session
-│ │ │
-│ │ └── utils/ # Helpers
-│ │ ├── config.py # Configuration
-│ │ └── logger.py # Logging setup
-│ │
-│ ├── requirements.txt
-│ ├── Dockerfile
-│ └── run.py # Entry point
+├── backend/
+│   ├── app/
+│   │   ├── agents/
+│   │   │   ├── base_agent.py
+│   │   │   ├── hegemon_agent.py
+│   │   │   └── sovereign_agent.py
+│   │   │
+│   │   ├── game_theory/
+│   │   │   ├── equilibrium.py
+│   │   │   ├── mixed_strategy.py
+│   │   │   └── payoff_matrix.py
+│   │   │
+│   │   ├── simulation/
+│   │   │   ├── engine.py
+│   │   │   ├── runner.py
+│   │   │   └── scenarios.py
+│   │   │
+│   │   ├── environment/
+│   │   │   ├── environment.py
+│   │   │   ├── state.py
+│   │   │   └── transition.py
+│   │   │
+│   │   ├── realtime/
+│   │   │   └── websocket.py
+│   │   │
+│   │   ├── analytics/
+│   │   │   └── forecast.py
+│   │   │
+│   │   ├── api/
+│   │   │   └── routes/
+│   │   │       ├── simulation.py
+│   │   │       ├── state.py
+│   │   │       ├── analytics.py
+│   │   │       └── websocket.py
+│   │   │
+│   │   ├── core/
+│   │   │   └── runtime.py
+│   │   │
+│   │   ├── database/
+│   │   │   ├── models.py
+│   │   │   ├── crud.py
+│   │   │   └── session.py
+│   │   │
+│   │   └── utils/
+│   │       ├── config.py
+│   │       └── logger.py
+│   │
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── run.py
 │
-└── frontend/ # Next.js Frontend
-├── app/
-│ ├── components/
-│ │ └── Dashboard/ # UI Components
-│ │ ├── Dashboard.tsx # Main orchestrator
-│ │ ├── Sidebar.tsx # Navigation
-│ │ ├── KpiStrip.tsx # Real-time KPIs
-│ │ ├── PowerBalance.tsx # Agent influence
-│ │ ├── WorldMap.tsx # Geopolitical map
-│ │ ├── AgentIntelligence.tsx # RL telemetry
-│ │ ├── ForecastPanel.tsx # Trend forecasting
-│ │ └── MilitaryOverview.tsx # Conflict metrics
-│ │
-│ ├── hooks/
-│ │ ├── useSimulation.ts # Simulation API hooks
-│ │ └── useWebSocket.ts # WebSocket client
-│ │
-│ └── types/
-│ └── index.ts # TypeScript definitions
-│
-├── package.json
-├── tailwind.config.js
-└── tsconfig.json
-
-text
+└── frontend/
+    ├── app/
+    │   ├── components/
+    │   │   └── Dashboard/
+    │   │       ├── Dashboard.tsx
+    │   │       ├── Sidebar.tsx
+    │   │       ├── KpiStrip.tsx
+    │   │       ├── PowerBalance.tsx
+    │   │       ├── WorldMap.tsx
+    │   │       ├── AgentIntelligence.tsx
+    │   │       ├── ForecastPanel.tsx
+    │   │       └── MilitaryOverview.tsx
+    │   │
+    │   ├── hooks/
+    │   │   ├── useSimulation.ts
+    │   │   └── useWebSocket.ts
+    │   │
+    │   └── types/
+    │       └── index.ts
+    │
+    └── package.json
+```
 
 ---
 
+# 🚀 Getting Started
 
+## Prerequisites
 
+- Python 3.9+
+- Node.js 18+
+- npm
+- Git
 
-
-
-
-
-
-
-
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.9 or higher
-- Node.js 18 or higher
-- npm or yarn
-
-### Installation
-
-**1. Clone the repository**
+## 1. Clone Repository
 
 ```bash
 git clone https://github.com/nh30073007/GEO_POLIS_SIMULATION.git
+
 cd GEO_POLIS_SIMULATION
-2. Backend Setup
+```
 
-bash
+## 2. Backend Setup
+
+```bash
 cd backend
+
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+Linux / macOS:
+
+```bash
+source venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
+
+Configure environment:
+
+```bash
+copy .env.example .env
+```
+
+Linux / macOS:
+
+```bash
 cp .env.example .env
+```
+
+Start backend:
+
+```bash
 python run.py
-The backend will start at http://localhost:8000
+```
 
-3. Frontend Setup
+Backend:
 
-bash
+`http://localhost:8000`
+
+API Documentation:
+
+`http://localhost:8000/docs`
+
+## 3. Frontend Setup
+
+Open a new terminal:
+
+```bash
 cd frontend
+
 npm install
-cp .env.example .env.local
+```
+
+Configure environment:
+
+```bash
+copy .env.example .env.local
+```
+
+Start development server:
+
+```bash
 npm run dev
-The frontend will start at http://localhost:3000
+```
 
-🎮 How It Works
-Core Loop
-Agents (Hegemon and Sovereign) select strategies from their doctrine sets
+Frontend:
 
-Environment processes the combined strategies and transitions state
+`http://localhost:3000`
 
-Utilities are calculated based on the new state
+---
 
-Q-learning updates agent Q-tables with the received rewards
+# 🔬 API Endpoints
 
-Epsilon decays, shifting from exploration to exploitation
+## Simulation Management
 
-Game Theory engines analyze equilibrium states
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/simulation/create` | Create simulation |
+| POST | `/api/simulation/start/{sim_id}` | Start simulation |
+| POST | `/api/simulation/pause/{sim_id}` | Pause simulation |
+| POST | `/api/simulation/resume/{sim_id}` | Resume simulation |
+| POST | `/api/simulation/stop/{sim_id}` | Stop simulation |
 
-Agent Strategies
-Agent	Strategy	Description
-Hegemon	H1	Expansionist - Aggressive territorial growth
-H2	Stabilizer - Maintain status quo
-H3	Disruptor - Create uncertainty
-H4	Dominator - Overwhelming force projection
-Sovereign	S1	Diplomatic - Alliance building
-S2	Resilient - Defense and fortification
-S3	Assertive - Proactive counter-measures
-S4	Adaptive - Flexible response
-State Metrics
-Economy: 0-100 scale (higher = stronger)
+## State & Analytics
 
-Tension: 0-100 scale (higher = conflict-prone)
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/state/current/{sim_id}` | Current simulation state |
+| GET | `/api/state/history/{sim_id}?limit=120` | Historical states |
+| GET | `/api/analytics/forecast/{sim_id}?horizon=8` | Trend forecasting |
+| GET | `/api/analytics/performance/{sim_id}` | Performance metrics |
 
-Stability: Composite metric of overall system health
+## WebSocket
 
-📊 Dashboard Features
-Component	Description
-KPI Strip	Real-time economic, tension, and stability metrics
-Power Balance	Visual comparison of agent influence
-World Map	Interactive geopolitical visualization
-Agent Intelligence	RL learning progress and Q-value trends
-Forecast Panel	Trend predictions with confidence intervals
-Conflict Tracker	Active and resolved conflict monitoring
-Military Overview	Force deployment and readiness metrics
-Diplomatic Relations	Alliance and tension visualizations
-🔬 API Endpoints
-Simulation Management
-text
-POST   /api/simulation/create
-POST   /api/simulation/start/{sim_id}
-POST   /api/simulation/pause/{sim_id}
-POST   /api/simulation/resume/{sim_id}
-POST   /api/simulation/stop/{sim_id}
-State & Analytics
-text
-GET    /api/state/current/{sim_id}
-GET    /api/state/history/{sim_id}?limit=120
-GET    /api/analytics/forecast/{sim_id}?horizon=8
-GET    /api/analytics/performance/{sim_id}
-WebSocket
-text
-WS     /ws?room={sim_id}
+```text
+ws://localhost:8000/ws?room={sim_id}
+```
 
-Contributing
-Fork the repository
+---
 
-Create your feature branch (git checkout -b feature/amazing-feature)
+# 📈 Core Simulation Metrics
 
-Commit your changes (git commit -m 'Add amazing feature')
+| Metric | Range | Description |
+|---|---|---|
+| Economy | 0–100 | Economic strength |
+| Tension | 0–100 | Geopolitical tension |
+| Stability | 0–100 | Overall system stability |
 
-Push to the branch (git push origin feature/amazing-feature)
+---
 
-Open a Pull Request
+# 🧪 Technical Highlights
 
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Custom reinforcement learning implementation.
+- Independent multi-agent strategy selection.
+- Adaptive payoff matrix calculations.
+- Nash equilibrium analysis.
+- Centralized simulation runtime.
+- Asynchronous FastAPI architecture.
+- WebSocket-based real-time event delivery.
+- Historical state tracking.
+- Trend-based forecasting.
+- Modular backend and frontend separation.
 
-Built with passion for AI, strategy, and simulation science
+---
+
+# 🔮 Future Development
+
+- Advanced Deep Reinforcement Learning algorithms.
+- Multi-agent actor-critic architectures.
+- LSTM and Transformer-based forecasting.
+- Expanded geopolitical scenario generation.
+- Advanced simulation experimentation tools.
+- Distributed simulation execution.
+- Enhanced real-time analytics.
+
+---
+
+# 🤝 Contributing
+
+Contributions, suggestions, and improvements are welcome.
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Commit your changes.
+4. Push your branch.
+5. Open a Pull Request.
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+**Built with Python, Reinforcement Learning, Game Theory, and Real-Time AI Simulation.**
+
+*Strategic AI Nexus — Exploring adaptive intelligence in complex geopolitical systems.*
